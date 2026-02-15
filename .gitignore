@@ -1,0 +1,61 @@
+# ===========================
+# 1. Python & System Basics
+# ===========================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# ===========================
+# 2. Virtual Environments
+# ===========================
+# Common names for virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# ===========================
+# 3. Editor & IDE Settings
+# ===========================
+# VS Code
+.vscode/
+# JetBrains (PyCharm)
+.idea/
+
+# ===========================
+# 4. Project Specific Data (Source Materials)
+# ===========================
+# Ignore the raw PowerPoint files in the data folder
+data/
+
+# Ignore raw screenshots or recordings you might take for testing
+*.mp4
+*.avi
+captures/
+screenshots/
+
+# ===========================
+# 5. Reinforcement Learning Outputs
+# ===========================
+# Trained models (can be large, usually better to track with DVC or keep local)
+*.pth
+*.pt
+*.ckpt
+models/
+checkpoints/
+
+# TensorBoard logs or training logs
+runs/
+logs/
+*.log
+
+# ===========================
+# 6. Sensitive Information
+# ===========================
+# Environment variables (API keys, etc.)
+.env
