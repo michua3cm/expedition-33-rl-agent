@@ -1,6 +1,6 @@
 import argparse
 import sys
-from calibration import run_recorder
+from calibration import run_recorder, run_analysis
 
 def main():
     # Initialize Argument Parser
@@ -11,6 +11,9 @@ def main():
 
     # Command 1: record (The original calibration)
     parser_record = subparsers.add_parser("record", help="Start recording gameplay data for calibration")
+    
+    # Command 2: analyze (The new analysis tool)
+    parser_analyze = subparsers.add_parser("analyze", help="Analyze logs and calculate the optimal ROI")
 
     # Parse arguments
     args = parser.parse_args()
@@ -19,6 +22,10 @@ def main():
     if args.mode == "record":
         print(">> Launching Recorder...")
         run_recorder()
+        
+    elif args.mode == "analyze":
+        print(">> Running Analysis Tool...")
+        run_analysis()
         
     else:
         # If no arguments provided, show help
