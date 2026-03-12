@@ -8,7 +8,6 @@ import win32api # type: ignore
 from .config import TARGETS, MONITOR_INDEX, SCREENSHOT_DIR
 from .loader import load_templates
 from .logger import CalibrationLogger
-from .matcher.pixel import match_target
 from overlay_ui import OverlayWindow
 
 # Key Codes
@@ -17,13 +16,24 @@ VK_STOP  = 0x79 # F10
 VK_EXIT  = 0x7A # F11
 
 class CalibrationApp:
-    def __init__(self):
+    def __init__(self, engine="PIXEL"):
+        self.engine = engine.upper()
         self.sct = mss.mss()
         self.monitor_config = self._setup_monitor()
         self.overlay = OverlayWindow()
         self.logger = CalibrationLogger()
-        self.templates = load_templates(TARGETS)
+        self.templates = load_templates(TARGETS, engine=self.engine)
         self.running = True
+
+        # Dynamic Engine Setup
+        if self.engine == "SIFT":
+            self.sift = cv2.SIFT_create()
+            from .matcher.sift import match_target
+            self.match_target = match_target
+        else:
+            self.sift = None
+            from .matcher.pixel import match_target
+            self.match_target = match_target
 
     def _setup_monitor(self):
         """Configure monitor cropping region."""
@@ -89,17 +99,25 @@ class CalibrationApp:
                 offset = (self.monitor_config["left"], self.monitor_config["top"])  # Offset for coordinate conversion
                 status_parts = [f"FPS: {fps:.1f}"]  # Status string builder
 
-                # 3. Match Targets
-                for name, data in self.templates.items():
-                    conf = match_target(name, data, img_gray, offset, self.overlay, self.logger)
-                    status_parts.append(f"{name}:{conf:.2f}")
+                # 3. Pre-compute live frame features (FPS Optimization)
+                frame_data = {}
+                if self.engine == "SIFT":
+                    live_kp, live_des = self.sift.detectAndCompute(img_gray, None)
+                    frame_data = {"kp": live_kp, "des": live_des}
 
-                # 4. Update Status Bar
+                # 4. Match Targets
+                for name, data in self.templates.items():
+                    conf = self.match_target(name, data, img_gray, offset, self.overlay, self.logger, frame_data)
+                    # SIFT returns match count, PIXEL returns confidence %
+                    val_str = f"{conf}" if self.engine == "SIFT" else f"{conf:.2f}"
+                    status_parts.append(f"{name}:{val_str}")
+
+                # 5. Update Status Bar
                 full_status = " | ".join(status_parts)
                 if self.logger.get_record_status():
-                    self.overlay.draw_status(f"● REC {full_status}", "red")
+                    self.overlay.draw_status(f"● REC [{self.engine}] {full_status}", "red")
                 else:
-                    self.overlay.draw_status(f"○ IDLE {full_status}", "lime")
+                    self.overlay.draw_status(f"○ IDLE [{self.engine}] {full_status}", "lime")
                 
                 self.overlay.update()
 

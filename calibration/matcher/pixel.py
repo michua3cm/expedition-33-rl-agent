@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def match_target(name, template_data, img_gray, offset, overlay, logger):
+def match_target(name, template_data, img_gray, offset, overlay, logger, frame_data=None):
     """
     Detects a specific target in the image using TM_CCOEFF_NORMED.
     """
