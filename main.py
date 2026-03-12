@@ -11,6 +11,8 @@ def main():
 
     # Command 1: record (The original calibration)
     parser_record = subparsers.add_parser("record", help="Start recording gameplay data for calibration")
+    # Add engine selection
+    parser_record.add_argument("--engine", choices=["pixel", "sift"], default="pixel", help="Vision engine to use (pixel or sift)")
     
     # Command 2: analyze (The new analysis tool)
     parser_analyze = subparsers.add_parser("analyze", help="Analyze logs and calculate the optimal ROI")
@@ -20,8 +22,8 @@ def main():
 
     # Routing Logic
     if args.mode == "record":
-        print(">> Launching Recorder...")
-        run_recorder()
+        print(f">> Launching Recorder with {args.engine.upper()} engine...")
+        run_recorder(engine=args.engine)
         
     elif args.mode == "analyze":
         print(">> Running Analysis Tool...")
