@@ -11,6 +11,7 @@ os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 # Global Settings
 DEFAULT_THRESHOLD = 0.6
+DEFAULT_MIN_MATCHES = 12
 
 # 0: All monitors
 # 1: monitor 1
@@ -22,26 +23,31 @@ TARGETS = {
     "PERFECT": {
         "file": "template_perfect.png",
         "color": "lime",
-        "threshold": 0.65  # Text needs lower threshold
+        "threshold": 0.65,  # Text needs lower threshold
+        "min_matches": 10
     },
     "DODGE": {
         "file": "template_dodge.png",
         "color": "yellow",
-        "threshold": 0.65
+        "threshold": 0.65,
+        "min_matches": 10
     },
     "PARRIED": {
         "file": "template_parried.png",
         "color": "cyan",
-        "threshold": 0.65
+        "threshold": 0.65,
+        "min_matches": 10
     },
     "JUMP": {
         "file": "template_jump.png",
         "color": "magenta",
-        "threshold": 0.75
+        "threshold": 0.75,
+        "min_matches": 15
     },
     # "MOUSE": {
     #     "file": "template_mouse.png",
     #     "color": "orange",
-    #     "threshold": 0.90  # Icon needs strict threshold
+    #     "threshold": 0.90,  # Icon needs strict threshold
+    #     "min_matches": 10
     # }
 }
