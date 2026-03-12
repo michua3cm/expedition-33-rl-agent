@@ -3,9 +3,7 @@ import numpy as np
 
 def match_target(name, template_data, img_gray, offset, overlay, logger):
     """
-    Detects a specific target in the image.
-    Updates the Overlay and the Logger directly.
-    Returns: Max confidence score.
+    Detects a specific target in the image using TM_CCOEFF_NORMED.
     """
     # 1. Matching
     res = cv2.matchTemplate(img_gray, template_data["image"], cv2.TM_CCOEFF_NORMED)
@@ -23,7 +21,6 @@ def match_target(name, template_data, img_gray, offset, overlay, logger):
     off_x, off_y = offset
     
     # 5. Process Matches
-    # zip(*loc[::-1]) converts (y, x) arrays to (x, y) coordinates
     for pt in zip(*loc[::-1]):
         global_x = pt[0] + off_x
         global_y = pt[1] + off_y

@@ -8,7 +8,7 @@ import win32api # type: ignore
 from .config import TARGETS, MONITOR_INDEX, SCREENSHOT_DIR
 from .loader import load_templates
 from .logger import CalibrationLogger
-from .matcher import match_target
+from .matcher.pixel import match_target
 from overlay_ui import OverlayWindow
 
 # Key Codes
