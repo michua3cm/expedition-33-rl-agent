@@ -4,22 +4,23 @@
 
 ## 📖 Overview
 
-This project aims to bridge the gap between classic control theory and modern Deep Reinforcement Learning. The agent interacts with the game solely through visual inputs (screenshots) and keyboard simulation, mimicking a human player without accessing internal game memory or code injection.
+This project bridges the gap between classic control theory and modern Deep Reinforcement Learning. The agent interacts with the game solely through visual inputs (screenshots) and keyboard simulation, mimicking a human player without accessing internal game memory or code injection.
 
 **Current Phase: Vision System & Calibration**
-We are currently building the "Eyes" of the agent. This module is responsible for:
+We have built a highly modular "Eyes" module for the agent. This module is responsible for:
 
-1.  **Real-time Object Detection:** Identifying game states (Perfect, Dodge, Parry, UI Icons).
+1.  **Real-time Object Detection:** Identifying dynamic game states (Perfect, Dodge, Parry, UI Icons) regardless of window size or screen resolution.
 2.  **System Identification:** Calibrating the agent's focus area (Region of Interest) to maximize FPS.
-3.  **Data Collection:** logging gameplay events to train the future Reward Model.
+3.  **Data Collection:** Logging gameplay events to train the future Reward Model.
 
 ## 🚀 Key Features
 
-- **Non-Intrusive Vision:** Uses `mss` for high-speed screen capture (>60 FPS) without hooking into the game process.
-- **Dynamic Template Matching:** A robust computer vision pipeline that detects UI elements with specific confidence thresholds.
+- **Dual Vision Engines:** Switch between ultra-fast Pixel Template Matching and resolution-independent SIFT Feature Matching on the fly via CLI.
+
+- **Non-Intrusive Capture:** Uses `mss` for high-speed screen capture (>60 FPS) without hooking into the game process.
 - **Transparent Debug Overlay:** A custom Win32-based HUD that draws bounding boxes over the game in real-time for immediate visual feedback.
 - **Data Logging Pipeline:** Automatically records coordinates and events to CSV for offline analysis and RL environment setup.
-- **Modular Architecture:** Clean separation between Configuration, Vision Logic, and UI.
+- **Modular Architecture:** Clean, OOP-driven separation between Configuration, Vision Logic, and UI.
 
 ## 📂 Project Structure
 
@@ -32,17 +33,19 @@ Expedition33/
 │   ├── config.py            # Central Configuration (Targets & Thresholds)
 │   ├── loader.py            # Asset Loading Logic
 │   ├── logger.py            # CSV Logging Logic
-│   ├── matcher.py           # Core Computer Vision Algorithm
-│   └── analysis/
+│   ├── matcher/             # Core Computer Vision Algorithms
+│   │   ├── __init__.py
+│   │   ├── pixel.py         # Standard TM_CCOEFF_NORMED matching
+│   │   └── sift.py          # Scale-invariant feature matching
+│   └── analysis/            # Offline ROI optimization tools
 │       ├── __init__.py
 │       ├── core.py
-│       ├── entry.py
-│       └── __pycache__/
+│       └── entry.py
 ├── data/
 │   ├── logs/                # Generated CSV training data
 │   └── screenshots/         # Debug snapshots for template creation
 ├── overlay_ui.py            # Win32 Transparent Overlay Class
-├── main.py                  # Entry Point
+├── main.py                  # CLI Entry Point
 ├── requirements.txt         # Project Dependencies
 └── README.md
 ```
@@ -53,15 +56,17 @@ Expedition33/
 
     ```bash
     git clone <your-repo-url>
-    cd Expedition33-RL
+    cd expedition-33-rl-agent
     ```
 
 2.  **Set up Virtual Environment**
 
     ```bash
     python -m venv .venv
+
     # Windows:
     .venv\Scripts\activate
+
     # Mac/Linux:
     source .venv/bin/activate
     ```
@@ -76,21 +81,26 @@ Expedition33/
 **⚠️ Administrator Privileges Required:**
 This program uses global hotkeys (`win32api`) and draws a topmost overlay. You must run your terminal or IDE as **Administrator**.
 
-1.  **Run the Agent's Vision System:**
-    - Record the data
+1.  **Launch the Game:**  
+    Ensure **_Clair Obscur: Expedition 33_** is running in **Windowed** or **Borderless Window** mode.
+
+2.  **Run the Agent's Vision System (Record Mode)**  
+    You can choose which computer vision engine drives the agent using the `--engine` flag.
 
     ```bash
-    python main.py record
+    # Use standard pixel matching (Best for fixed resolutions)
+    python main.py record --engine pixel
+
+    # Use scale-invariant feature matching (Best for dynamic resolutions)
+    python main.py record --engine sift
     ```
 
-    - Analyze the data
+3.  **Run the Analysis Tool**
+    After recording, calculate the optimal Region of Interest (ROI) from your logs.
 
     ```bash
     python main.py analyze
     ```
-
-2.  **Launch the Game:**
-    Ensure _Expedition 33_ is running in **Windowed** or **Borderless Window** mode.
 
 ### Hotkeys & Controls
 
@@ -126,7 +136,8 @@ TARGETS = {
     "JUMP": {
         "file": "template_jump.png",
         "color": "magenta",     # Overlay box color
-        "threshold": 0.75       # Confidence threshold (0.0 - 1.0)
+        "threshold": 0.75,      # Used by PIXEL engine (0.0 - 1.0)
+        "min_matches": 15       # Used by SIFT engine (Feature count)
     }
 }
 ```
@@ -137,20 +148,11 @@ TARGETS = {
 
 - **Solid Icons/Buttons:** Use higher thresholds (0.85 - 0.95) to reduce false positives.
 
-## 🛣️ Project Roadmap
+## 🛣️ Current State & Next Steps
 
-- [x] **Phase 1: Vision System & Calibration**
-  - [x] High-speed screen capture.
-  - [x] Template matching engine.
-  - [x] Data collection pipeline.
-- [ ] **Phase 2: Environment Wrapper**
-  - [ ] Create OpenAI Gym / Gymnasium custom environment.
-  - [ ] Implement `step()`, `reset()`, and `reward()` functions based on vision data.
-- [ ] **Phase 3: Agent Training**
-  - [ ] Implement PPO (Proximal Policy Optimization) or DQN.
-  - [ ] Train agent on collected gameplay data.
-- [ ] **Phase 4: Evaluation & Optimization**
-  - [ ] Hyperparameter tuning and model deployment.
+The Vision and Calibration pipeline (Phase 1) is currently operational (still need some modifications).
+
+Development will be shifting toward **Phase 2: Environment Wrapper**, where we will ingest the live CSV and coordinate data into a custom OpenAI Gym / Gymnasium environment to establish the `step()`, `reset()`, and `reward()` functions for the RL model.
 
 ---
 
