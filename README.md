@@ -9,9 +9,9 @@ This project bridges the gap between classic control theory and modern Deep Rein
 **Current Phase: Vision System & Calibration**
 We have built a highly modular "Eyes" module for the agent. This module is responsible for:
 
-1.  **Real-time Object Detection:** Identifying dynamic game states (Perfect, Dodge, Parry, UI Icons) regardless of window size or screen resolution.
-2.  **System Identification:** Calibrating the agent's focus area (Region of Interest) to maximize FPS.
-3.  **Data Collection:** Logging gameplay events to train the future Reward Model.
+1. **Real-time Object Detection:** Identifying dynamic game states (Perfect, Dodge, Parry, UI Icons) regardless of window size or screen resolution.
+2. **System Identification:** Calibrating the agent's focus area (Region of Interest) to maximize FPS.
+3. **Data Collection:** Logging gameplay events to train the future Reward Model.
 
 ## 🚀 Key Features
 
@@ -25,20 +25,20 @@ We have built a highly modular "Eyes" module for the agent. This module is respo
 ## 📂 Project Structure
 
 ```text
-Expedition33/
+expedition-33-rl-agent/
+├── .python-version          # Anchors the Python runtime version
+├── pyproject.toml           # Project metadata, dependencies, and tool configs
+├── uv.lock                  # Deterministic dependency lockfile
 ├── assets/                  # Template images (png) for the Vision System
 ├── calibration/             # [Module] Vision & Data Collection
-│   ├── __init__.py
 │   ├── app.py               # Main Application Logic (The Orchestrator)
 │   ├── config.py            # Central Configuration (Targets & Thresholds)
 │   ├── loader.py            # Asset Loading Logic
 │   ├── logger.py            # CSV Logging Logic
 │   ├── matcher/             # Core Computer Vision Algorithms
-│   │   ├── __init__.py
 │   │   ├── pixel.py         # Standard TM_CCOEFF_NORMED matching
 │   │   └── sift.py          # Scale-invariant feature matching
 │   └── analysis/            # Offline ROI optimization tools
-│       ├── __init__.py
 │       ├── core.py
 │       └── entry.py
 ├── data/
@@ -46,34 +46,54 @@ Expedition33/
 │   └── screenshots/         # Debug snapshots for template creation
 ├── overlay_ui.py            # Win32 Transparent Overlay Class
 ├── main.py                  # CLI Entry Point
-├── requirements.txt         # Project Dependencies
 └── README.md
 ```
 
 ## 🛠️ Installation
 
-1.  **Clone the repository**
+**Prerequisite:**  
+
+This project uses `uv` for package and environment management.
+
+Install `uv` globally if you don't have it:
+
+- **Git Bash (Windows) / macOS / Linux:**
+
+    ```bash
+    curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
+    ```
+
+- **VS Code Integrated Terminal (Windows PowerShell):**
+
+    ```powershell
+    powershell -ExecutionPolicy ByPass -c "irm [https://astral.sh/uv/install.ps1](https://astral.sh/uv/install.ps1) | iex"
+    ```
+
+> ⚠️ **Note:** Restart your terminal after installing to enable the `uv` command.
+
+---
+
+1. **Clone the repository**
 
     ```bash
     git clone <your-repo-url>
     cd expedition-33-rl-agent
     ```
 
-2.  **Set up Virtual Environment**
+2. **Sync the environment**
+
+    This single command automatically creates the isolated `.venv` folder and installs all exact, locked dependencies from the `uv.lock` file:
 
     ```bash
-    python -m venv .venv
-
-    # Windows:
-    .venv\Scripts\activate
-
-    # Mac/Linux:
-    source .venv/bin/activate
+    uv sync
     ```
 
-3.  **Install Dependencies**
+3. **Run the application**
+
+    You do not need to manually activate the environment. `uv` automatically routes execution through the correct virtual environment:
+
     ```bash
-    pip install -r requirements.txt
+    uv run main.py
     ```
 
 ## 🎮 Usage (Calibration Module)
@@ -81,25 +101,25 @@ Expedition33/
 **⚠️ Administrator Privileges Required:**
 This program uses global hotkeys (`win32api`) and draws a topmost overlay. You must run your terminal or IDE as **Administrator**.
 
-1.  **Launch the Game:**  
+1. **Launch the Game:**  
     Ensure **_Clair Obscur: Expedition 33_** is running in **Windowed** or **Borderless Window** mode.
 
-2.  **Run the Agent's Vision System (Record Mode)**  
+2. **Run the Agent's Vision System (Record Mode)**  
     You can choose which computer vision engine drives the agent using the `--engine` flag.
 
     ```bash
     # Use standard pixel matching (Best for fixed resolutions)
-    python main.py record --engine pixel
-
+    uv run main.py record --engine pixel
+    
     # Use scale-invariant feature matching (Best for dynamic resolutions)
-    python main.py record --engine sift
+    uv run main.py record --engine sift
     ```
 
-3.  **Run the Analysis Tool**
+3. **Run the Analysis Tool**
     After recording, calculate the optimal Region of Interest (ROI) from your logs.
 
     ```bash
-    python main.py analyze
+    uv run main.py analyze
     ```
 
 ### Hotkeys & Controls
@@ -125,10 +145,10 @@ All settings are managed in `calibration/config.py`.
 
 To teach the agent to recognize a new game element (e.g., a "Jump" prompt):
 
-1.  Run the program and press **F9** to capture a debug screenshot.
-2.  Crop the target element from `data/screenshots/`.
-3.  Save it to the `assets/` folder (e.g., `template_jump.png`).
-4.  Register it in `config.py`:
+1. Run the program and press **F9** to capture a debug screenshot.
+2. Crop the target element from `data/screenshots/`.
+3. Save it to the `assets/` folder (e.g., `template_jump.png`).
+4. Register it in `config.py`:
 
 ```python
 TARGETS = {
