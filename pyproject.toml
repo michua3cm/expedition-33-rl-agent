@@ -1,0 +1,13 @@
+[project]
+name = "expedition-33-rl-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mss==10.1.0",
+    "numpy==2.4.2",
+    "opencv-python==4.13.0.92",
+    "pandas==3.0.0",
+    "pywin32==311",
+]
