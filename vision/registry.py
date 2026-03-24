@@ -13,15 +13,18 @@ def register(name: str):
     return decorator
 
 
-def create(name: str) -> VisionEngine:
-    """Instantiate a registered engine by name (case-insensitive)."""
+def create(name: str, **kwargs) -> VisionEngine:
+    """
+    Instantiate a registered engine by name (case-insensitive).
+    Extra kwargs are forwarded to the engine's __init__ (e.g. model_path for YOLO).
+    """
     key = name.upper()
     if key not in _REGISTRY:
         available = ", ".join(_REGISTRY.keys()) or "none loaded"
         raise ValueError(
             f"Unknown vision engine '{name}'. Available: {available}"
         )
-    return _REGISTRY[key]()
+    return _REGISTRY[key](**kwargs)
 
 
 def available() -> list[str]:

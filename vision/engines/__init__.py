@@ -2,5 +2,6 @@
 # Add new engines here as they are implemented.
 from .pixel import PixelEngine
 from .sift import SIFTEngine
+from .yolo import YOLOEngine
 
-__all__ = ["PixelEngine", "SIFTEngine"]
+__all__ = ["PixelEngine", "SIFTEngine", "YOLOEngine"]
