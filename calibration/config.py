@@ -4,10 +4,13 @@ import os
 ASSETS_DIR = 'assets'
 LOG_DIR = os.path.join('data', 'logs')
 SCREENSHOT_DIR = os.path.join('data', 'screenshots')
+YOLO_RAW_DIR = os.path.join('data', 'yolo_dataset', 'images', 'raw')
+YOLO_MODEL_PATH = os.path.join('data', 'yolo_dataset', 'train', 'weights', 'best.pt')
 
 # Ensure directories exist
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+os.makedirs(YOLO_RAW_DIR, exist_ok=True)
 
 # Global Settings
 DEFAULT_THRESHOLD = 0.6
@@ -44,10 +47,10 @@ TARGETS = {
         "threshold": 0.75,
         "min_matches": 15
     },
-    # "MOUSE": {
-    #     "file": "template_mouse.png",
-    #     "color": "orange",
-    #     "threshold": 0.90,  # Icon needs strict threshold
-    #     "min_matches": 10
-    # }
+    "MOUSE": {
+        "file": "template_mouse.png",
+        "color": "orange",
+        "threshold": 0.90,  # Icon needs strict threshold — high precision for auto-labeling
+        "min_matches": 10
+    }
 }
