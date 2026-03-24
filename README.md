@@ -51,7 +51,7 @@ expedition-33-rl-agent/
 
 ## 🛠️ Installation
 
-**Prerequisite:**  
+**Prerequisite:**
 
 This project uses `uv` for package and environment management.
 
@@ -59,42 +59,42 @@ Install `uv` globally if you don't have it:
 
 - **Git Bash (Windows) / macOS / Linux:**
 
-    ```bash
-    curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
-    ```
+  ```bash
+  curl -sSL https://astral.sh/uv/install.sh | bash
+  ```
 
 - **VS Code Integrated Terminal (Windows PowerShell):**
 
-    ```powershell
-    powershell -ExecutionPolicy ByPass -c "irm [https://astral.sh/uv/install.ps1](https://astral.sh/uv/install.ps1) | iex"
-    ```
+  ```powershell
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
 
-> ⚠️ **Note:** Restart your terminal after installing to enable the `uv` command.
+> ⚠️ **Note:** Restart your terminal (or VS Code) after installing to enable the `uv` command.
 
 ---
 
 1. **Clone the repository**
 
-    ```bash
-    git clone <your-repo-url>
-    cd expedition-33-rl-agent
-    ```
+   ```bash
+   git clone <your-repo-url>
+   cd expedition-33-rl-agent
+   ```
 
 2. **Sync the environment**
 
-    This single command automatically creates the isolated `.venv` folder and installs all exact, locked dependencies from the `uv.lock` file:
+   This single command automatically creates the isolated `.venv` folder and installs all exact, locked dependencies from the `uv.lock` file:
 
-    ```bash
-    uv sync
-    ```
+   ```bash
+   uv sync
+   ```
 
 3. **Run the application**
 
-    You do not need to manually activate the environment. `uv` automatically routes execution through the correct virtual environment:
+   You do not need to manually activate the environment. `uv` automatically routes execution through the correct virtual environment:
 
-    ```bash
-    uv run main.py
-    ```
+   ```bash
+   uv run main.py
+   ```
 
 ## 🎮 Usage (Calibration Module)
 
@@ -102,25 +102,25 @@ Install `uv` globally if you don't have it:
 This program uses global hotkeys (`win32api`) and draws a topmost overlay. You must run your terminal or IDE as **Administrator**.
 
 1. **Launch the Game:**  
-    Ensure **_Clair Obscur: Expedition 33_** is running in **Windowed** or **Borderless Window** mode.
+   Ensure **_Clair Obscur: Expedition 33_** is running in **Windowed** or **Borderless Window** mode.
 
 2. **Run the Agent's Vision System (Record Mode)**  
-    You can choose which computer vision engine drives the agent using the `--engine` flag.
+   You can choose which computer vision engine drives the agent using the `--engine` flag.
 
-    ```bash
-    # Use standard pixel matching (Best for fixed resolutions)
-    uv run main.py record --engine pixel
-    
-    # Use scale-invariant feature matching (Best for dynamic resolutions)
-    uv run main.py record --engine sift
-    ```
+   ```bash
+   # Use standard pixel matching (Best for fixed resolutions)
+   uv run main.py record --engine pixel
+
+   # Use scale-invariant feature matching (Best for dynamic resolutions)
+   uv run main.py record --engine sift
+   ```
 
 3. **Run the Analysis Tool**
-    After recording, calculate the optimal Region of Interest (ROI) from your logs.
+   After recording, calculate the optimal Region of Interest (ROI) from your logs.
 
-    ```bash
-    uv run main.py analyze
-    ```
+   ```bash
+   uv run main.py analyze
+   ```
 
 ### Hotkeys & Controls
 
