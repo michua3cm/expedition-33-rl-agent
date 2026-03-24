@@ -15,7 +15,7 @@ def main():
     )
     parser_record.add_argument(
         "-e", "--engine",
-        choices=["pixel", "sift", "yolo"],
+        choices=["pixel", "sift", "orb", "yolo"],
         default="pixel",
         help="Vision engine to use (default: pixel)",
     )
