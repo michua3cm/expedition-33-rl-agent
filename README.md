@@ -191,12 +191,13 @@ The trained model is saved to `data/yolo_dataset/train/weights/best.pt` and pick
 |---|---|---|---|---|
 | `pixel` | Template matching (TM_CCOEFF_NORMED) | No | No | Fast baseline, fixed resolution |
 | `sift` | SIFT + FLANN + Lowe's ratio test | Partial | No | Scale-invariant matching |
+| `orb` | ORB + BFMatcher (Hamming) + Lowe's ratio | Partial | No | Faster than SIFT, robotics-ready (ORB-SLAM) |
 | `yolo` | YOLOv8 fine-tuned on gameplay | Yes | Yes (auto) | Production use, resolution-robust |
 
 All engines implement the same `VisionEngine` interface and return `List[Detection]` with confidence normalised to 0.0–1.0.
 
-**Adding a new engine** (e.g. ORB):
-1. Create `vision/engines/orb.py` implementing `VisionEngine` with `@register("ORB")`
+**Adding a new engine:**
+1. Create `vision/engines/<name>.py` implementing `VisionEngine` with `@register("<NAME>")`
 2. Add one import line in `vision/engines/__init__.py`
 3. That's it — calibration, environment, and CLI all pick it up automatically.
 
