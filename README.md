@@ -1,178 +1,224 @@
-# Expedition 33 RL Agent 🤖⚔️
+# Expedition 33 RL Agent
 
-> **Project Goal:** To develop a Reinforcement Learning (RL) agent capable of playing _Expedition 33_ autonomously using computer vision and advanced control algorithms.
+> **Project Goal:** Develop a Reinforcement Learning agent capable of playing _Clair Obscur: Expedition 33_ autonomously using computer vision, Imitation Learning, and Reinforcement Learning — then transfer the experience to a Robotics project.
 
-## 📖 Overview
+## Overview
 
-This project bridges the gap between classic control theory and modern Deep Reinforcement Learning. The agent interacts with the game solely through visual inputs (screenshots) and keyboard simulation, mimicking a human player without accessing internal game memory or code injection.
+The agent interacts with the game purely through visual inputs (screen capture) and keyboard/mouse simulation. No game memory access, no code injection. The vision system is designed to be swappable so different algorithms can be benchmarked fairly and replaced without touching any other part of the codebase.
 
-**Current Phase: Vision System & Calibration**
-We have built a highly modular "Eyes" module for the agent. This module is responsible for:
+**Roadmap:**
 
-1. **Real-time Object Detection:** Identifying dynamic game states (Perfect, Dodge, Parry, UI Icons) regardless of window size or screen resolution.
-2. **System Identification:** Calibrating the agent's focus area (Region of Interest) to maximize FPS.
-3. **Data Collection:** Logging gameplay events to train the future Reward Model.
+| Phase | Description | Status |
+|---|---|---|
+| 1 | Vision System & Calibration | Complete |
+| 2 | YOLO Training Pipeline | In Progress |
+| 3 | Environment Wrapper (Gym) | Planned |
+| 4 | Imitation Learning (IL) | Planned |
+| 5 | Reinforcement Learning (RL) | Planned |
 
-## 🚀 Key Features
+## Key Features
 
-- **Dual Vision Engines:** Switch between ultra-fast Pixel Template Matching and resolution-independent SIFT Feature Matching on the fly via CLI.
+- **Swappable Vision Engines:** PIXEL, SIFT, and YOLO all implement the same `VisionEngine` interface. Switch with one flag (`-e pixel`, `-e sift`, `-e yolo`). Adding a new engine requires one file.
+- **YOLO Auto-Label Pipeline:** PIXEL bootstraps YOLO training labels automatically — no manual labeling required for the existing 5 game elements.
+- **Async-Ready Architecture:** Vision runs behind a clean `detect(frame) → List[Detection]` contract, ready to be decoupled from the training loop via a `StateBuffer`.
+- **Non-Intrusive Capture:** `mss` screen capture at >60 FPS without hooking into the game process.
+- **Transparent Debug Overlay:** Win32-based HUD draws real-time bounding boxes and confidence scores over the game.
+- **Data Logging Pipeline:** Records detected game events to CSV for ROI analysis and future RL environment setup.
 
-- **Non-Intrusive Capture:** Uses `mss` for high-speed screen capture (>60 FPS) without hooking into the game process.
-- **Transparent Debug Overlay:** A custom Win32-based HUD that draws bounding boxes over the game in real-time for immediate visual feedback.
-- **Data Logging Pipeline:** Automatically records coordinates and events to CSV for offline analysis and RL environment setup.
-- **Modular Architecture:** Clean, OOP-driven separation between Configuration, Vision Logic, and UI.
-
-## 📂 Project Structure
+## Project Structure
 
 ```text
 expedition-33-rl-agent/
-├── .python-version          # Anchors the Python runtime version
-├── pyproject.toml           # Project metadata, dependencies, and tool configs
-├── uv.lock                  # Deterministic dependency lockfile
-├── assets/                  # Template images (png) for the Vision System
-├── calibration/             # [Module] Vision & Data Collection
-│   ├── app.py               # Main Application Logic (The Orchestrator)
-│   ├── config.py            # Central Configuration (Targets & Thresholds)
-│   ├── loader.py            # Asset Loading Logic
-│   ├── logger.py            # CSV Logging Logic
-│   ├── matcher/             # Core Computer Vision Algorithms
-│   │   ├── pixel.py         # Standard TM_CCOEFF_NORMED matching
-│   │   └── sift.py          # Scale-invariant feature matching
-│   └── analysis/            # Offline ROI optimization tools
-│       ├── core.py
-│       └── entry.py
-├── data/
-│   ├── logs/                # Generated CSV training data
-│   └── screenshots/         # Debug snapshots for template creation
-├── overlay_ui.py            # Win32 Transparent Overlay Class
-├── main.py                  # CLI Entry Point
-└── README.md
+├── main.py                      # CLI entry point
+├── overlay_ui.py                # Win32 transparent overlay
+├── pyproject.toml               # Dependencies and project metadata
+│
+├── assets/                      # Template images for PIXEL/SIFT engines
+│
+├── vision/                      # Standalone vision layer (no external deps)
+│   ├── engine.py                # VisionEngine ABC, Detection, GameState dataclasses
+│   ├── registry.py              # @register decorator + create() factory
+│   └── engines/
+│       ├── pixel.py             # Template matching (TM_CCOEFF_NORMED)
+│       ├── sift.py              # SIFT feature matching (FLANN + Lowe's ratio)
+│       └── yolo.py              # YOLOv8 inference engine
+│
+├── calibration/                 # Data collection and calibration tools
+│   ├── app.py                   # Calibration recorder (uses any vision engine)
+│   ├── collector.py             # Screenshot collector for YOLO training data
+│   ├── config.py                # Targets, thresholds, paths
+│   ├── loader.py                # Template asset loader
+│   ├── logger.py                # CSV logging
+│   └── analysis/                # ROI optimization from recorded logs
+│
+├── tools/                       # Offline pipeline tools
+│   ├── auto_label.py            # PIXEL → YOLO label generator + dataset.yaml
+│   └── train.py                 # YOLOv8 training wrapper
+│
+├── environment/                 # RL environment bridge (in progress)
+│   ├── instance.py              # GameInstance: vision + controller bridge
+│   └── controls.py              # GameController: DirectInput keyboard/mouse
+│
+└── data/
+    ├── logs/                    # CSV calibration logs
+    ├── screenshots/             # Debug snapshots
+    └── yolo_dataset/            # YOLO training dataset (auto-generated)
+        ├── dataset.yaml
+        ├── images/
+        │   ├── raw/             # Collected screenshots (input)
+        │   ├── train/
+        │   └── val/
+        └── labels/
+            ├── train/
+            └── val/
 ```
 
-## 🛠️ Installation
-
-**Prerequisite:**
+## Installation
 
 This project uses `uv` for package and environment management.
 
-Install `uv` globally if you don't have it:
+**Install `uv` if you don't have it:**
 
 - **Git Bash (Windows) / macOS / Linux:**
-
   ```bash
   curl -sSL https://astral.sh/uv/install.sh | bash
   ```
 
-- **VS Code Integrated Terminal (Windows PowerShell):**
-
+- **PowerShell (Windows):**
   ```powershell
   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
   ```
 
-> ⚠️ **Note:** Restart your terminal (or VS Code) after installing to enable the `uv` command.
+> Restart your terminal after installing to enable the `uv` command.
+
+**Setup:**
+
+```bash
+git clone <your-repo-url>
+cd expedition-33-rl-agent
+uv sync
+```
+
+`uv sync` creates the `.venv` and installs all locked dependencies including `ultralytics` for YOLO.
+
+## Usage
+
+> **Administrator privileges required.** This program uses global hotkeys (`win32api`) and draws a topmost overlay. Run your terminal or IDE as Administrator.
+>
+> Launch **_Clair Obscur: Expedition 33_** in **Windowed** or **Borderless Window** mode before running any command.
 
 ---
 
-1. **Clone the repository**
+### Calibration Recorder
 
-   ```bash
-   git clone <your-repo-url>
-   cd expedition-33-rl-agent
-   ```
+Run the vision system live over the game to collect ROI data.
 
-2. **Sync the environment**
+```bash
+uv run main.py record               # default: PIXEL engine
+uv run main.py record -e pixel      # explicit PIXEL
+uv run main.py record -e sift       # SIFT engine
+uv run main.py record -e yolo       # YOLO engine (requires trained model)
+```
 
-   This single command automatically creates the isolated `.venv` folder and installs all exact, locked dependencies from the `uv.lock` file:
+| Key | Function | Description |
+|---|---|---|
+| **F9** | Start Recording | Begins logging detections to CSV. Saves a debug screenshot. |
+| **F10** | Stop & Save | Stops recording and writes the session to `data/logs/`. |
+| **F11** | Exit | Closes the overlay and exits safely. |
 
-   ```bash
-   uv sync
-   ```
+The overlay shows `○ IDLE` (green) when monitoring but not recording, and `● REC` (red) when actively logging.
 
-3. **Run the application**
+---
 
-   You do not need to manually activate the environment. `uv` automatically routes execution through the correct virtual environment:
+### ROI Analysis
 
-   ```bash
-   uv run main.py
-   ```
+Calculate the optimal monitor region from recorded logs to maximize FPS.
 
-## 🎮 Usage (Calibration Module)
+```bash
+uv run main.py analyze
+```
 
-**⚠️ Administrator Privileges Required:**
-This program uses global hotkeys (`win32api`) and draws a topmost overlay. You must run your terminal or IDE as **Administrator**.
+---
 
-1. **Launch the Game:**  
-   Ensure **_Clair Obscur: Expedition 33_** is running in **Windowed** or **Borderless Window** mode.
+### YOLO Training Pipeline
 
-2. **Run the Agent's Vision System (Record Mode)**  
-   You can choose which computer vision engine drives the agent using the `--engine` flag.
+Three commands, run in order.
 
-   ```bash
-   # Use standard pixel matching (Best for fixed resolutions)
-   uv run main.py record --engine pixel
+**Step 1 — Collect screenshots while playing:**
 
-   # Use scale-invariant feature matching (Best for dynamic resolutions)
-   uv run main.py record --engine sift
-   ```
+```bash
+uv run main.py collect
+```
 
-3. **Run the Analysis Tool**
-   After recording, calculate the optimal Region of Interest (ROI) from your logs.
+| Key | Function |
+|---|---|
+| **F9** | Save a single screenshot |
+| **F10** | Toggle auto-capture (one screenshot per second) |
+| **F11** | Exit |
 
-   ```bash
-   uv run main.py analyze
-   ```
+Screenshots are saved to `data/yolo_dataset/images/raw/`.
 
-### Hotkeys & Controls
+**Step 2 — Auto-label with PIXEL and generate the dataset:**
 
-| Key     | Function            | Description                                                                               |
-| :------ | :------------------ | :---------------------------------------------------------------------------------------- |
-| **F9**  | **START Recording** | Begins logging data to CSV. Also saves a screenshot to `data/screenshots/` for debugging. |
-| **F10** | **STOP & SAVE**     | Stops recording and commits the session data to disk (`data/logs/`).                      |
-| **F11** | **TERMINATE**       | Closes the overlay and exits the program safely.                                          |
+```bash
+uv run main.py autolabel                        # default: 80/20 train/val split
+uv run main.py autolabel --val-split 0.15       # custom split
+uv run main.py autolabel --no-negatives         # exclude frames with no detections
+```
 
-### Status Indicators
+Runs the PIXEL engine on every raw screenshot, writes YOLO `.txt` label files, splits into `train/` and `val/`, and generates `dataset.yaml`. No manual labeling required.
 
-The overlay displays the system status in the top-left corner:
+**Step 3 — Train:**
 
-- **<span style="color:lime">○ IDLE (Green)</span>**: Vision is active, FPS is being calculated, but **no data** is being saved. Use this to test detection accuracy.
-- **<span style="color:red">● REC (Red)</span>**: The agent is actively recording gameplay data for training.
+```bash
+uv run main.py train                                # default: yolov8n, 100 epochs
+uv run main.py train --epochs 150 --model yolov8s   # larger model, more epochs
+```
 
-## ⚙️ Configuration & Tuning
+| Option | Default | Description |
+|---|---|---|
+| `--epochs` | `100` | Training epochs |
+| `--imgsz` | `640` | Input image size |
+| `--model` | `yolov8n.pt` | Base model (`n`=fastest → `x`=most accurate) |
 
-All settings are managed in `calibration/config.py`.
+The trained model is saved to `data/yolo_dataset/train/weights/best.pt` and picked up automatically by `record -e yolo`.
 
-### 1. Adding New Targets
+---
 
-To teach the agent to recognize a new game element (e.g., a "Jump" prompt):
+## Vision Engine Reference
 
-1. Run the program and press **F9** to capture a debug screenshot.
-2. Crop the target element from `data/screenshots/`.
-3. Save it to the `assets/` folder (e.g., `template_jump.png`).
-4. Register it in `config.py`:
+| Engine | Algorithm | Resolution Robust | Needs Training | Best For |
+|---|---|---|---|---|
+| `pixel` | Template matching (TM_CCOEFF_NORMED) | No | No | Fast baseline, fixed resolution |
+| `sift` | SIFT + FLANN + Lowe's ratio test | Partial | No | Scale-invariant matching |
+| `yolo` | YOLOv8 fine-tuned on gameplay | Yes | Yes (auto) | Production use, resolution-robust |
+
+All engines implement the same `VisionEngine` interface and return `List[Detection]` with confidence normalised to 0.0–1.0.
+
+**Adding a new engine** (e.g. ORB):
+1. Create `vision/engines/orb.py` implementing `VisionEngine` with `@register("ORB")`
+2. Add one import line in `vision/engines/__init__.py`
+3. That's it — calibration, environment, and CLI all pick it up automatically.
+
+---
+
+## Configuration
+
+All targets and thresholds are defined in `calibration/config.py`.
 
 ```python
 TARGETS = {
-    # ... other targets ...
-    "JUMP": {
-        "file": "template_jump.png",
-        "color": "magenta",     # Overlay box color
-        "threshold": 0.75,      # Used by PIXEL engine (0.0 - 1.0)
-        "min_matches": 15       # Used by SIFT engine (Feature count)
-    }
+    "PERFECT": {"file": "template_perfect.png", "color": "lime",    "threshold": 0.65, "min_matches": 10},
+    "DODGE":   {"file": "template_dodge.png",   "color": "yellow",  "threshold": 0.65, "min_matches": 10},
+    "PARRIED": {"file": "template_parried.png", "color": "cyan",    "threshold": 0.65, "min_matches": 10},
+    "JUMP":    {"file": "template_jump.png",    "color": "magenta", "threshold": 0.75, "min_matches": 15},
+    "MOUSE":   {"file": "template_mouse.png",   "color": "orange",  "threshold": 0.90, "min_matches": 10},
 }
 ```
 
-### 2. Tuning Thresholds
-
-- **Text/Translucent UI:** Use lower thresholds (0.60 - 0.70).
-
-- **Solid Icons/Buttons:** Use higher thresholds (0.85 - 0.95) to reduce false positives.
-
-## 🛣️ Current State & Next Steps
-
-The Vision and Calibration pipeline (Phase 1) is currently operational (still need some modifications).
-
-Development will be shifting toward **Phase 2: Environment Wrapper**, where we will ingest the live CSV and coordinate data into a custom OpenAI Gym / Gymnasium environment to establish the `step()`, `reset()`, and `reward()` functions for the RL model.
+- `threshold` — used by PIXEL engine (0.0–1.0). Higher = fewer false positives.
+- `min_matches` — used by SIFT engine (minimum good feature matches to confirm detection).
+- YOLO ignores both; it uses the confidence value from the trained model.
 
 ---
 
