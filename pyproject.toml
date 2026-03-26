@@ -11,4 +11,5 @@ dependencies = [
     "pandas==3.0.0",
     "pywin32==311",
     "ultralytics",
+    "pynput",
 ]
