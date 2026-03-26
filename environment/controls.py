@@ -10,21 +10,24 @@ user32 = ctypes.windll.user32
 # DirectInput Scan Codes (Hardware Mapping)
 # These are universal for almost all PC games.
 SCANCODES = {
-    # Movement / Menu Navigation
-    "Q": 0x10,  # Open Gradient Menu
-    "W": 0x11,  # Open Item Menu
-    "E": 0x12,  # Open Skill Menu
-    "R": 0x13,  # Switch skill pages
-    "A": 0x1E,  # Choose left target
-    "D": 0x20,  # Choose right target
-    "F": 0x21,  # Confirm action
-    
+    # Dual-purpose keys — behaviour depends on combat phase:
+    #   Q  — DODGE (enemy turn, Phase 1)      | Open Gradient Menu (player turn, Phase 2)
+    #   W  — GRADIENT_PARRY (enemy turn, P1)  | Open Item Menu (player turn, Phase 2)
+    #   E  — PARRY (enemy turn, Phase 1)      | Open Skill Menu (player turn, Phase 2)
+    "Q": 0x10,
+    "W": 0x11,
+    "E": 0x12,
+    "R": 0x13,      # Switch skill pages
+    "A": 0x1E,      # Choose left target
+    "D": 0x20,      # Choose right target
+    "F": 0x21,      # Basic attack / Confirm action
+
     # Special Actions
     "SPACE": 0x39,  # Jump
     "ESC": 0x01,    # Cancel / Back
-    "ENTER": 0x1C,  # Confirm in some scenarios (not used in main gameplay, but good to have)
-    
-    # Not used yet, but good to have
+    "ENTER": 0x1C,  # Confirm in some scenarios
+
+    # Reserved
     "TAB": 0x0F,
     "SHIFT": 0x2A,  # Sprint
     "CTRL": 0x1D,
@@ -60,7 +63,7 @@ class GameController:
     High-level interface for controlling Expedition 33.
     Uses DirectInput Scan Codes to ensure compatibility with the game engine.
     """
-    
+
     def __init__(self):
         self.default_delay = 0.05  # 50ms hold time is usually safe for games
 
@@ -112,8 +115,8 @@ class GameController:
         time.sleep(self.default_delay)
         win32api.mouse_event(up_flag, 0, 0, 0, 0)
 
-    # --- DEFENSE ACTIONS ---
-    
+    # --- PHASE 1: DEFENSIVE ACTIONS ---
+
     def dodge(self):
         """Press Q to Dodge."""
         self.tap_key("Q")
@@ -121,24 +124,30 @@ class GameController:
     def parry(self):
         """Press E to Parry."""
         self.tap_key("E")
-        
+
     def gradient_parry(self):
-        """Press W to Gradient Parry (Grey Background)."""
+        """Press W to Gradient Parry (grey screen / GRADIENT_INCOMING cue)."""
         self.tap_key("W")
 
     def jump(self):
         """Press SPACE to Jump."""
         self.tap_key("SPACE")
 
-    def jump_attack_confirm(self):
-        """Left Click during jump for counter-attack."""
+    def jump_attack(self):
+        """Left click to counter-attack during the jump attack window (MOUSE cue)."""
         self.click_mouse("left")
 
-    # --- OFFENSE ACTIONS ---
+    # --- PHASE 1: OFFENSIVE ACTIONS ---
+
+    def attack(self):
+        """Press F to initiate a basic attack."""
+        self.tap_key("F")
 
     def normal_attack_init(self):
-        """Press F to start attack selection."""
-        self.tap_key("F")
+        """Alias for attack() — press F to initiate basic attack."""
+        self.attack()
+
+    # --- PHASE 2: MENU NAVIGATION (planned) ---
 
     def confirm_selection(self):
         """Press F to confirm target/action."""
@@ -167,14 +176,14 @@ class GameController:
     def navigate_right(self):
         """Press D to choose target right."""
         self.tap_key("D")
-        
+
     def switch_skill_page(self):
         """Press R to switch skill pages."""
         self.tap_key("R")
 
     def select_slot(self, slot_num):
         """
-        Selects item/skill 1, 2, or 3.
+        Selects item/skill slot 1, 2, or 3.
         slot_num: 1='Q', 2='W', 3='E'
         """
         mapping = {1: "Q", 2: "W", 3: "E"}
