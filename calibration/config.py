@@ -6,11 +6,13 @@ LOG_DIR = os.path.join('data', 'logs')
 SCREENSHOT_DIR = os.path.join('data', 'screenshots')
 YOLO_RAW_DIR = os.path.join('data', 'yolo_dataset', 'images', 'raw')
 YOLO_MODEL_PATH = os.path.join('data', 'yolo_dataset', 'train', 'weights', 'best.pt')
+DEMO_DIR = os.path.join('data', 'demos')
 
 # Ensure directories exist
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 os.makedirs(YOLO_RAW_DIR, exist_ok=True)
+os.makedirs(DEMO_DIR, exist_ok=True)
 
 # Global Settings
 DEFAULT_THRESHOLD = 0.6
