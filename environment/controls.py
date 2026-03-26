@@ -63,7 +63,7 @@ class GameController:
     High-level interface for controlling Expedition 33.
     Uses DirectInput Scan Codes to ensure compatibility with the game engine.
     """
-    
+
     def __init__(self):
         self.default_delay = 0.05  # 50ms hold time is usually safe for games
 
@@ -147,6 +147,8 @@ class GameController:
         """Alias for attack() — press F to initiate basic attack."""
         self.attack()
 
+    # --- PHASE 2: MENU NAVIGATION (planned) ---
+
     def confirm_selection(self):
         """Press F to confirm target/action."""
         self.tap_key("F")
@@ -174,14 +176,14 @@ class GameController:
     def navigate_right(self):
         """Press D to choose target right."""
         self.tap_key("D")
-        
+
     def switch_skill_page(self):
         """Press R to switch skill pages."""
         self.tap_key("R")
 
     def select_slot(self, slot_num):
         """
-        Selects item/skill 1, 2, or 3.
+        Selects item/skill slot 1, 2, or 3.
         slot_num: 1='Q', 2='W', 3='E'
         """
         mapping = {1: "Q", 2: "W", 3: "E"}
