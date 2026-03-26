@@ -66,9 +66,14 @@ class GameInstance:
             frame=frame if include_frame else None,
         )
 
-    # --- Convenience action wrappers ---
+    # --- Phase 1: Defensive action wrappers ---
 
-    def attack(self):   self.controller.click_mouse("left")
-    def jump(self):     self.controller.jump()
-    def parry(self):    self.controller.parry()
-    def dodge(self):    self.controller.dodge()
+    def dodge(self):          self.controller.dodge()
+    def parry(self):          self.controller.parry()
+    def gradient_parry(self): self.controller.gradient_parry()
+    def jump(self):           self.controller.jump()
+    def jump_attack(self):    self.controller.jump_attack()
+
+    # --- Phase 1: Offensive action wrappers ---
+
+    def attack(self):         self.controller.attack()
