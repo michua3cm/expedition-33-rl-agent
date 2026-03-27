@@ -1,0 +1,88 @@
+# Project Structure
+
+Full annotated file tree for the Expedition 33 RL Agent project.
+
+```text
+expedition-33-rl-agent/
+├── main.py                      # CLI entry point (record / analyze / collect / autolabel / train)
+├── overlay_ui.py                # Win32 transparent overlay (bounding boxes + HUD)
+├── pyproject.toml               # Dependencies and project metadata (uv)
+│
+├── assets/                      # Template images for PIXEL / SIFT / ORB engines
+│
+├── vision/                      # Standalone vision layer — no game or RL dependencies
+│   ├── engine.py                # VisionEngine ABC, Detection and GameState dataclasses
+│   ├── registry.py              # @register decorator + create() factory
+│   └── engines/
+│       ├── pixel.py             # Template matching (TM_CCOEFF_NORMED)
+│       ├── sift.py              # SIFT feature matching (FLANN + Lowe's ratio test)
+│       ├── orb.py               # ORB + BFMatcher (Hamming distance)
+│       └── yolo.py              # YOLOv8 inference engine
+│
+├── calibration/                 # Data collection and calibration tools
+│   ├── app.py                   # Calibration recorder (live vision over game)
+│   ├── collector.py             # Screenshot collector for YOLO training data
+│   ├── config.py                # TARGETS, thresholds, all path constants
+│   ├── logger.py                # CSV logging for calibration sessions
+│   └── analysis/                # ROI optimisation from recorded logs
+│       ├── core.py              # Bounding-box analysis logic
+│       └── entry.py             # CLI entry point for analyze command
+│
+├── environment/                 # RL environment — Gymnasium-compatible
+│   ├── actions.py               # Shared action-index constants (7 Phase 1 actions)
+│   ├── gym_env.py               # Expedition33Env: gym.Env wrapper
+│   ├── state_buffer.py          # Async background capture thread (StateBuffer)
+│   ├── instance.py              # GameInstance: vision + controller bridge
+│   └── controls.py              # GameController: DirectInput keyboard/mouse
+│
+├── tools/                       # Offline pipeline tools (no game required to run)
+│   ├── auto_label.py            # PIXEL → YOLO label generator + dataset.yaml writer
+│   ├── train.py                 # YOLOv8 training wrapper
+│   ├── demo_recorder.py         # Human gameplay demonstration recorder
+│   └── vision_benchmark.py      # Vision engine profiler + live capture stress test
+│
+├── tests/                       # Unit tests — see TESTING.md
+│   ├── test_actions.py          # environment/actions.py
+│   ├── test_vision_engine.py    # vision/engine.py
+│   ├── test_vision_registry.py  # vision/registry.py
+│   ├── test_calibration_logger.py  # calibration/logger.py
+│   ├── test_gym_env.py          # environment/gym_env.py
+│   ├── test_state_buffer.py     # environment/state_buffer.py
+│   ├── test_demo_recorder.py    # tools/demo_recorder.py
+│   └── test_vision_benchmark.py # tools/vision_benchmark.py
+│
+├── docs/                        # Extended documentation
+│   ├── PROJECT_STRUCTURE.md     # This file
+│   ├── USAGE.md                 # Full CLI reference
+│   └── CONFIGURATION.md         # Config variables and TARGETS reference (planned)
+│
+└── data/                        # Runtime outputs — gitignored
+    ├── logs/                    # CSV calibration logs (from record command)
+    ├── screenshots/             # Debug snapshots + YOLO raw input
+    ├── demos/                   # Human demonstration .npz files
+    └── yolo_dataset/            # YOLO training dataset (auto-generated)
+        ├── dataset.yaml         # Class names and split paths
+        ├── images/
+        │   ├── raw/             # Collected screenshots (input to autolabel)
+        │   ├── train/           # Training split
+        │   └── val/             # Validation split
+        └── labels/
+            ├── train/           # YOLO .txt label files
+            └── val/
+```
+
+## Module Responsibilities
+
+| Module | Responsibility | Depends on |
+|---|---|---|
+| `vision/` | Pure detection — takes a frame, returns detections | numpy, cv2, ultralytics |
+| `calibration/` | Data collection, logging, config | vision/, mss |
+| `environment/` | RL interface — wraps game as gym.Env | vision/, calibration/config |
+| `tools/` | Offline utilities — YOLO pipeline, demo recording, benchmarking | vision/, environment/, calibration/ |
+| `tests/` | Unit tests — all external deps mocked | pytest, pytest-mock |
+
+## Key Design Decisions
+
+- **Vision engines are fully interchangeable.** `VisionEngine` is an ABC with `load()` and `detect()`. All callers use `registry.create(name)` — no engine-specific imports outside `vision/engines/`.
+- **`environment/` has no win32 dependency at the gym level.** `Expedition33Env` and `StateBuffer` only import `GameInstance`, which isolates the Windows-specific `GameController` behind one interface.
+- **`tools/` are offline-first.** `demo_recorder.py` and `vision_benchmark.py` can be coded and tested without the game running. They only need the game live when actually recording or stress-testing.
