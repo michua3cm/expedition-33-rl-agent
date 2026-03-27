@@ -5,20 +5,28 @@ Runs one or more vision engines over a set of saved screenshots and
 produces a performance + accuracy report so you can make an informed
 decision about which engine to use for live RL training.
 
+Also includes a **live capture stress test** that measures real-world
+sustained FPS including screen-capture overhead (mss + vision inference
+together) and recommends a safe poll rate for your machine.
+
 What it measures
 ----------------
 - **Throughput** — frames per second each engine sustains on your hardware
 - **Latency**    — mean, median, p95, and max inference time per frame (ms)
 - **Detection rate** — how often each target label is detected across the batch
 - **Confidence stats** — mean and max confidence per detected label
+- **Live FPS** — real-world capture + inference FPS on your actual monitor
 
 Typical workflow
 ----------------
 1. Collect screenshots with the calibration recorder:
        uv run main.py collect
-2. Run the benchmark against those screenshots:
+2. Run the offline benchmark against those screenshots:
        uv run python -m tools.vision_benchmark --engines PIXEL SIFT ORB
-3. Read the printed report and pick the engine that fits your FPS budget.
+3. Run the live stress test for your chosen engine:
+       uv run python -m tools.vision_benchmark --live --live-engine PIXEL
+4. Read the recommendation and set --hz accordingly in the demo recorder
+   or StateBuffer.
 
 CLI usage
 ---------
@@ -34,13 +42,22 @@ CLI usage
     # Save the report to a CSV file
     uv run python -m tools.vision_benchmark --csv results/benchmark.csv
 
+    # Run a 10-second live capture stress test with the PIXEL engine
+    uv run python -m tools.vision_benchmark --live --live-engine PIXEL
+
+    # Live stress test for 30 seconds with ORB
+    uv run python -m tools.vision_benchmark --live --live-engine ORB --live-duration 30
+
 Options
 -------
-    --engines       Space-separated engine names to benchmark (default: PIXEL SIFT ORB)
-    --img-dir       Directory containing .png/.jpg screenshots (default: data/screenshots)
-    --limit         Max number of images to process per engine (default: all)
-    --warmup        Number of warmup frames before timing starts (default: 5)
-    --csv           Optional path to save the per-engine summary as CSV
+    --engines         Space-separated engine names to benchmark (default: PIXEL SIFT ORB)
+    --img-dir         Directory containing .png/.jpg screenshots (default: data/screenshots)
+    --limit           Max images per engine (default: all)
+    --warmup          Number of warmup frames before timing starts (default: 5)
+    --csv             Optional path to save summary CSV
+    --live            Run a live capture stress test instead of the offline benchmark
+    --live-engine     Engine to use for the live stress test (default: PIXEL)
+    --live-duration   Duration of the live stress test in seconds (default: 10)
 """
 
 from __future__ import annotations
@@ -54,10 +71,11 @@ from pathlib import Path
 from typing import Optional
 
 import cv2
+import mss
 import numpy as np
 
 import vision
-from calibration.config import TARGETS, ASSETS_DIR, SCREENSHOT_DIR
+from calibration.config import TARGETS, ASSETS_DIR, SCREENSHOT_DIR, MONITOR_INDEX
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +276,130 @@ def _save_csv(results: list[EngineResult], csv_path: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Live capture stress test
+# ---------------------------------------------------------------------------
+
+# Recommendation thresholds (Hz)
+_SAFE_HZ_TIERS = [60, 30, 20]
+
+
+@dataclass
+class LiveStressResult:
+    """Result of a live screen-capture + inference stress test."""
+    engine_name: str
+    duration_s: float
+    frame_count: int
+    # Full-pipeline latencies: capture + greyscale conversion + inference
+    latencies: list[float] = field(default_factory=list, repr=False)
+
+    fps: float = 0.0
+    mean_ms: float = 0.0
+    median_ms: float = 0.0
+    p95_ms: float = 0.0
+    max_ms: float = 0.0
+    recommended_hz: int = 0
+
+    def finalise(self) -> None:
+        if not self.latencies:
+            return
+        arr = np.array(self.latencies) * 1000  # → ms
+        self.fps       = 1000.0 / arr.mean() if arr.mean() > 0 else 0.0
+        self.mean_ms   = float(arr.mean())
+        self.median_ms = float(np.median(arr))
+        self.p95_ms    = float(np.percentile(arr, 95))
+        self.max_ms    = float(arr.max())
+        # Recommend the highest safe tier with ≥20% headroom
+        for tier in _SAFE_HZ_TIERS:
+            if self.fps >= tier * 1.2:
+                self.recommended_hz = tier
+                break
+        else:
+            self.recommended_hz = 0  # below 20 Hz even with headroom
+
+
+def run_live_stress_test(
+    engine_name: str,
+    duration_s: float = 10.0,
+    warmup: int = 10,
+) -> LiveStressResult:
+    """
+    Capture live frames from the monitor and run the vision engine on each,
+    measuring the full pipeline FPS (capture + colour conversion + inference).
+
+    Args:
+        engine_name: Vision engine to test (e.g. 'PIXEL').
+        duration_s:  How many seconds to run the timed portion.
+        warmup:      Number of frames to discard before timing starts.
+
+    Returns:
+        LiveStressResult with timing stats and a recommended poll Hz.
+    """
+    eng = vision.registry.create(engine_name.upper())
+    eng.load(TARGETS, ASSETS_DIR)
+
+    result = LiveStressResult(
+        engine_name=engine_name.upper(),
+        duration_s=duration_s,
+        frame_count=0,
+    )
+
+    with mss.mss() as sct:
+        monitor = sct.monitors[MONITOR_INDEX]
+
+        # Warmup — not timed
+        for _ in range(warmup):
+            raw = sct.grab(monitor)
+            frame = cv2.cvtColor(np.array(raw), cv2.COLOR_BGRA2GRAY)
+            eng.detect(frame)
+
+        # Timed run
+        deadline = time.perf_counter() + duration_s
+        while time.perf_counter() < deadline:
+            t0 = time.perf_counter()
+            raw = sct.grab(monitor)
+            frame = cv2.cvtColor(np.array(raw), cv2.COLOR_BGRA2GRAY)
+            eng.detect(frame)
+            result.latencies.append(time.perf_counter() - t0)
+
+    result.frame_count = len(result.latencies)
+    result.finalise()
+    return result
+
+
+def _print_live_report(result: LiveStressResult) -> None:
+    print("\n" + "=" * 72)
+    print("  LIVE CAPTURE STRESS TEST RESULTS")
+    print("=" * 72)
+    print(f"  Engine   : {result.engine_name}")
+    print(f"  Duration : {result.duration_s:.0f}s")
+    print(f"  Frames   : {result.frame_count}")
+    print()
+    print(f"  Sustained FPS : {result.fps:>7.1f}")
+    print(f"  Mean latency  : {result.mean_ms:>7.2f} ms")
+    print(f"  Median latency: {result.median_ms:>7.2f} ms")
+    print(f"  p95 latency   : {result.p95_ms:>7.2f} ms")
+    print(f"  Max latency   : {result.max_ms:>7.2f} ms")
+    print()
+
+    if result.recommended_hz > 0:
+        print(f"  Recommendation: Safe to run at {result.recommended_hz} Hz")
+        print(f"  (sustained {result.fps:.1f} FPS >= {result.recommended_hz} Hz x 1.2 headroom)")
+    else:
+        print(f"  Recommendation: Below 20 Hz threshold ({result.fps:.1f} FPS sustained).")
+        print("  Consider using a lighter engine or reducing the capture ROI.")
+
+    print()
+    # Visual tier summary
+    for tier in _SAFE_HZ_TIERS:
+        needed = tier * 1.2
+        status = "YES" if result.fps >= needed else "NO "
+        bar    = "#" * int(min(result.fps, needed) / needed * 20)
+        print(f"  {tier:>3} Hz  [{status}]  {bar:<20}  (need {needed:.0f} FPS, got {result.fps:.1f})")
+
+    print("=" * 72 + "\n")
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -286,27 +428,51 @@ def _parse_args() -> argparse.Namespace:
         "--csv", default=None,
         help="Optional path to save summary CSV",
     )
+    p.add_argument(
+        "--live", action="store_true",
+        help="Run a live capture stress test instead of the offline benchmark",
+    )
+    p.add_argument(
+        "--live-engine", default="PIXEL",
+        help="Engine to use for the live stress test (default: PIXEL)",
+    )
+    p.add_argument(
+        "--live-duration", type=float, default=10.0,
+        help="Duration of the live stress test in seconds (default: 10)",
+    )
     return p.parse_args()
 
 
 if __name__ == "__main__":
     args = _parse_args()
 
-    print(f"[vision_benchmark] Loading images from '{args.img_dir}'...")
-    frames = _load_images(args.img_dir, args.limit)
-    print(f"[vision_benchmark] {len(frames)} frames loaded.")
+    if args.live:
+        print(
+            f"[vision_benchmark] Live stress test — engine={args.live_engine.upper()}, "
+            f"duration={args.live_duration:.0f}s"
+        )
+        print("[vision_benchmark] Warming up...", flush=True)
+        live_result = run_live_stress_test(
+            engine_name=args.live_engine,
+            duration_s=args.live_duration,
+        )
+        _print_live_report(live_result)
+    else:
+        print(f"[vision_benchmark] Loading images from '{args.img_dir}'...")
+        frames = _load_images(args.img_dir, args.limit)
+        print(f"[vision_benchmark] {len(frames)} frames loaded.")
 
-    results = []
-    for engine_name in args.engines:
-        print(f"[vision_benchmark] Running {engine_name}...", end=" ", flush=True)
-        try:
-            result = run_engine_benchmark(engine_name.upper(), frames, args.warmup)
-            results.append(result)
-            print(f"done — {result.fps:.1f} FPS")
-        except Exception as exc:
-            print(f"FAILED ({exc})")
+        results = []
+        for engine_name in args.engines:
+            print(f"[vision_benchmark] Running {engine_name}...", end=" ", flush=True)
+            try:
+                result = run_engine_benchmark(engine_name.upper(), frames, args.warmup)
+                results.append(result)
+                print(f"done — {result.fps:.1f} FPS")
+            except Exception as exc:
+                print(f"FAILED ({exc})")
 
-    if results:
-        _print_report(results)
-        if args.csv:
-            _save_csv(results, args.csv)
+        if results:
+            _print_report(results)
+            if args.csv:
+                _save_csv(results, args.csv)
