@@ -2,6 +2,19 @@
 
 > **Project Goal:** Develop a Reinforcement Learning agent capable of playing _Clair Obscur: Expedition 33_ autonomously using computer vision, Imitation Learning, and Reinforcement Learning — then transfer the experience to a Robotics project.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Vision Engine Reference](#vision-engine-reference)
+- [Configuration](#configuration)
+- [Documentation](#documentation)
+
+---
+
 ## Overview
 
 The agent interacts with the game purely through visual inputs (screen capture) and keyboard/mouse simulation. No game memory access, no code injection. The vision system is designed to be swappable so different algorithms can be benchmarked fairly and replaced without touching any other part of the codebase.
@@ -16,6 +29,8 @@ The agent interacts with the game purely through visual inputs (screen capture) 
 | 4 | Imitation Learning (IL) | Planned |
 | 5 | Reinforcement Learning (RL) | Planned |
 
+---
+
 ## Key Features
 
 - **Swappable Vision Engines:** PIXEL, SIFT, ORB, and YOLO all implement the same `VisionEngine` interface. Switch with one flag (`-e pixel`, `-e sift`, `-e orb`, `-e yolo`). Adding a new engine requires one file.
@@ -28,69 +43,24 @@ The agent interacts with the game purely through visual inputs (screen capture) 
 - **Transparent Debug Overlay:** Win32-based HUD draws real-time bounding boxes and confidence scores over the game.
 - **Data Logging Pipeline:** Records detected game events to CSV for ROI analysis and RL environment setup.
 
-## Project Structure
+---
+
+## Architecture
 
 ```text
 expedition-33-rl-agent/
-├── main.py                      # CLI entry point
-├── overlay_ui.py                # Win32 transparent overlay
-├── pyproject.toml               # Dependencies and project metadata
-│
-├── assets/                      # Template images for PIXEL/SIFT/ORB engines
-│
-├── vision/                      # Standalone vision layer (no external deps)
-│   ├── engine.py                # VisionEngine ABC, Detection, GameState dataclasses
-│   ├── registry.py              # @register decorator + create() factory
-│   └── engines/
-│       ├── pixel.py             # Template matching (TM_CCOEFF_NORMED)
-│       ├── sift.py              # SIFT feature matching (FLANN + Lowe's ratio)
-│       ├── orb.py               # ORB + BFMatcher (Hamming distance)
-│       └── yolo.py              # YOLOv8 inference engine
-│
-├── calibration/                 # Data collection and calibration tools
-│   ├── app.py                   # Calibration recorder (uses any vision engine)
-│   ├── collector.py             # Screenshot collector for YOLO training data
-│   ├── config.py                # Targets, thresholds, paths
-│   ├── logger.py                # CSV logging
-│   └── analysis/                # ROI optimization from recorded logs
-│
-├── tools/                       # Offline pipeline tools
-│   ├── auto_label.py            # PIXEL → YOLO label generator + dataset.yaml
-│   ├── train.py                 # YOLOv8 training wrapper
-│   ├── demo_recorder.py         # Human gameplay demonstration recorder
-│   └── vision_benchmark.py      # Vision engine performance profiler + live stress test
-│
-├── tests/                       # Unit tests (pytest) — see TESTING.md
-│   ├── test_actions.py          # environment/actions.py
-│   ├── test_vision_engine.py    # vision/engine.py
-│   ├── test_vision_registry.py  # vision/registry.py
-│   ├── test_calibration_logger.py # calibration/logger.py
-│   ├── test_gym_env.py          # environment/gym_env.py
-│   ├── test_state_buffer.py     # environment/state_buffer.py
-│   ├── test_demo_recorder.py    # tools/demo_recorder.py
-│   └── test_vision_benchmark.py # tools/vision_benchmark.py
-│
-├── environment/                 # RL environment (Gymnasium-compatible)
-│   ├── actions.py               # Shared action-index constants (7 Phase 1 actions)
-│   ├── gym_env.py               # Expedition33Env: gym.Env wrapper
-│   ├── state_buffer.py          # Async background capture thread
-│   ├── instance.py              # GameInstance: vision + controller bridge
-│   └── controls.py              # GameController: DirectInput keyboard/mouse
-│
-└── data/
-    ├── logs/                    # CSV calibration logs
-    ├── screenshots/             # Debug snapshots
-    ├── demos/                   # Human demonstration .npz files
-    └── yolo_dataset/            # YOLO training dataset (auto-generated)
-        ├── dataset.yaml
-        ├── images/
-        │   ├── raw/             # Collected screenshots (input)
-        │   ├── train/
-        │   └── val/
-        └── labels/
-            ├── train/
-            └── val/
+├── vision/          # Swappable vision engines (PIXEL, SIFT, ORB, YOLO)
+├── environment/     # Gymnasium RL environment, action space, async capture
+├── calibration/     # Data collection, CSV logging, config
+├── tools/           # Offline pipeline tools (YOLO training, demo recorder, benchmark)
+├── tests/           # Unit tests (pytest)
+├── assets/          # Template images for PIXEL/SIFT/ORB engines
+└── data/            # Runtime outputs (logs, screenshots, demos, YOLO dataset)
 ```
+
+See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for the full annotated file tree.
+
+---
 
 ## Installation
 
@@ -102,7 +72,6 @@ This project uses `uv` for package and environment management.
   ```bash
   curl -sSL https://astral.sh/uv/install.sh | bash
   ```
-
 - **PowerShell (Windows):**
   ```powershell
   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -115,184 +84,31 @@ This project uses `uv` for package and environment management.
 ```bash
 git clone <your-repo-url>
 cd expedition-33-rl-agent
-uv sync
+uv sync                  # installs all runtime dependencies
+uv sync --group dev      # also installs pytest + pytest-mock
 ```
 
-`uv sync` creates the `.venv` and installs all locked dependencies including `ultralytics` for YOLO and `pynput` for the demo recorder.
+---
 
-**Install dev dependencies (required to run tests):**
+## Quick Start
 
-```bash
-uv sync --group dev
-```
-
-## Usage
-
-> **Administrator privileges required.** This program uses global hotkeys (`win32api`) and draws a topmost overlay. Run your terminal or IDE as Administrator.
+> **Administrator privileges required** — `win32api` hotkeys and the topmost overlay need elevated permissions. Run your terminal or IDE as Administrator.
 >
 > Launch **_Clair Obscur: Expedition 33_** in **Windowed** or **Borderless Window** mode before running any command.
 
----
-
-### Calibration Recorder
-
-Run the vision system live over the game to collect ROI data.
-
-```bash
-uv run main.py record               # default: PIXEL engine
-uv run main.py record -e pixel      # explicit PIXEL
-uv run main.py record -e sift       # SIFT engine
-uv run main.py record -e orb        # ORB engine
-uv run main.py record -e yolo       # YOLO engine (requires trained model)
-```
-
-| Key | Function | Description |
-|---|---|---|
-| **F9** | Start Recording | Begins logging detections to CSV. Saves a debug screenshot. |
-| **F10** | Stop & Save | Stops recording and writes the session to `data/logs/`. |
-| **F11** | Exit | Closes the overlay and exits safely. |
-
-The overlay shows `○ IDLE` (green) when monitoring but not recording, and `● REC` (red) when actively logging.
-
----
-
-### ROI Analysis
-
-Calculate the optimal monitor region from recorded logs to maximize FPS.
-
-```bash
-uv run main.py analyze
-```
-
----
-
-### YOLO Training Pipeline
-
-Three commands, run in order.
-
-**Step 1 — Collect screenshots while playing:**
-
-```bash
-uv run main.py collect
-```
-
-| Key | Function |
+| Command | What it does |
 |---|---|
-| **F9** | Save a single screenshot |
-| **F10** | Toggle auto-capture (one screenshot per second) |
-| **F11** | Exit |
+| `uv run main.py record` | Run vision system live, record detections to CSV |
+| `uv run main.py analyze` | Calculate optimal capture ROI from recorded logs |
+| `uv run main.py collect` | Collect screenshots for YOLO training |
+| `uv run main.py autolabel` | Auto-label screenshots with PIXEL engine |
+| `uv run main.py train` | Train YOLOv8 on the labeled dataset |
+| `uv run python -m tools.demo_recorder` | Record human gameplay demonstrations |
+| `uv run python -m tools.vision_benchmark` | Benchmark vision engines on saved screenshots |
+| `uv run python -m tools.vision_benchmark --live` | Live capture stress test with Hz recommendation |
+| `uv run pytest tests/` | Run the full unit test suite |
 
-Screenshots are saved to `data/yolo_dataset/images/raw/`.
-
-**Step 2 — Auto-label with PIXEL and generate the dataset:**
-
-```bash
-uv run main.py autolabel                        # default: 80/20 train/val split
-uv run main.py autolabel --val-split 0.15       # custom split
-uv run main.py autolabel --no-negatives         # exclude frames with no detections
-```
-
-Runs the PIXEL engine on every raw screenshot, writes YOLO `.txt` label files, splits into `train/` and `val/`, and generates `dataset.yaml`. No manual labeling required.
-
-**Step 3 — Train:**
-
-```bash
-uv run main.py train                                # default: yolov8n, 100 epochs
-uv run main.py train --epochs 150 --model yolov8s   # larger model, more epochs
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `--epochs` | `100` | Training epochs |
-| `--imgsz` | `640` | Input image size |
-| `--model` | `yolov8n.pt` | Base model (`n`=fastest → `x`=most accurate) |
-
-The trained model is saved to `data/yolo_dataset/train/weights/best.pt` and picked up automatically by `record -e yolo`.
-
----
-
-### Human Demo Recorder
-
-Record human gameplay as observation–action trajectories for imitation learning.
-
-```bash
-uv run python -m tools.demo_recorder                          # default session name, PIXEL engine, 20 Hz
-uv run python -m tools.demo_recorder --session combat_01      # named session
-uv run python -m tools.demo_recorder --engine SIFT --hz 30    # SIFT engine at 30 Hz
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `--session` | `demo` | Output filename stem (saved as `data/demos/<session>.npz`) |
-| `--engine` | `PIXEL` | Vision engine used for observation capture |
-| `--hz` | `20.0` | Capture rate in frames per second |
-| `--save-dir` | `data/demos` | Directory to write `.npz` files |
-
-**Key → Action mapping:**
-
-| Key | Action |
-|---|---|
-| `E` | PARRY |
-| `Q` | DODGE |
-| `W` | GRADIENT_PARRY |
-| `F` | ATTACK |
-| `SPACE` | JUMP |
-| Left click | JUMP_ATTACK |
-| _(no input)_ | NOOP |
-
-Press **Ctrl+C** to stop recording. The trajectory is saved automatically as a compressed `.npz` with arrays:
-- `observations` — `float32 (N, 30)`: vision state at each timestep
-- `actions` — `int32 (N,)`: action index per timestep
-- `timestamps` — `float64 (N,)`: Unix timestamp of each capture
-
----
-
-### Vision Benchmark
-
-Profile all vision engines offline or run a live capture stress test to determine the safe poll rate for your hardware.
-
-**Offline benchmark** — runs engines against saved screenshots:
-
-```bash
-uv run python -m tools.vision_benchmark                             # PIXEL vs SIFT vs ORB
-uv run python -m tools.vision_benchmark --engines PIXEL ORB        # specific engines
-uv run python -m tools.vision_benchmark --csv results/bench.csv    # save summary to CSV
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `--engines` | `PIXEL SIFT ORB` | Space-separated engine names to benchmark |
-| `--img-dir` | `data/screenshots` | Directory of `.png`/`.jpg` screenshots |
-| `--limit` | all | Max images per engine |
-| `--warmup` | `5` | Warmup frames excluded from timing |
-| `--csv` | — | Optional path to save summary as CSV |
-
-Outputs three tables: throughput/latency (FPS, mean/median/p95/max ms), detection rate per label, and mean confidence per label.
-
-**Live capture stress test** — measures full-pipeline FPS (screen capture + inference) and recommends a poll Hz:
-
-```bash
-uv run python -m tools.vision_benchmark --live --live-engine PIXEL
-uv run python -m tools.vision_benchmark --live --live-engine ORB --live-duration 30
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `--live-engine` | `PIXEL` | Engine to stress test |
-| `--live-duration` | `10` | Test duration in seconds |
-
-Prints sustained FPS, latency stats, and a tier recommendation (20 / 30 / 60 Hz) with 1.2× headroom. Use the result to set `--hz` in the demo recorder or `poll_hz` in `StateBuffer`.
-
----
-
-### Running Tests
-
-```bash
-uv sync --group dev          # install pytest + pytest-mock (first time only)
-uv run pytest tests/         # run all tests
-```
-
-See [TESTING.md](TESTING.md) for a full breakdown of test coverage, how to run individual suites, and mocking conventions.
+See [docs/USAGE.md](docs/USAGE.md) for the full CLI reference — all options, flags, hotkeys, and output formats.
 
 ---
 
@@ -310,7 +126,7 @@ All engines implement the same `VisionEngine` interface and return `List[Detecti
 **Adding a new engine:**
 1. Create `vision/engines/<name>.py` implementing `VisionEngine` with `@register("<NAME>")`
 2. Add one import line in `vision/engines/__init__.py`
-3. That's it — calibration, environment, and CLI all pick it up automatically.
+3. Done — calibration, environment, and CLI pick it up automatically.
 
 ---
 
@@ -334,6 +150,16 @@ All targets, thresholds, and paths are defined in `calibration/config.py`.
 - `threshold` — PIXEL engine confidence cutoff (0.0–1.0). Higher = fewer false positives.
 - `min_matches` — SIFT/ORB minimum good feature matches to confirm a detection.
 - YOLO ignores both; it uses the model's own confidence output.
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/USAGE.md](docs/USAGE.md) | Full CLI reference — all commands, options, hotkeys, and output formats |
+| [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | Full annotated file tree |
+| [TESTING.md](TESTING.md) | Test guide — running tests, per-file coverage, mocking conventions |
 
 ---
 
