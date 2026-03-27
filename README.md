@@ -60,8 +60,15 @@ expedition-33-rl-agent/
 │   ├── demo_recorder.py         # Human gameplay demonstration recorder
 │   └── vision_benchmark.py      # Vision engine performance profiler + live stress test
 │
-├── tests/                       # Unit tests (pytest)
-│   └── test_vision_benchmark.py # Tests for vision_benchmark.py
+├── tests/                       # Unit tests (pytest) — see TESTING.md
+│   ├── test_actions.py          # environment/actions.py
+│   ├── test_vision_engine.py    # vision/engine.py
+│   ├── test_vision_registry.py  # vision/registry.py
+│   ├── test_calibration_logger.py # calibration/logger.py
+│   ├── test_gym_env.py          # environment/gym_env.py
+│   ├── test_state_buffer.py     # environment/state_buffer.py
+│   ├── test_demo_recorder.py    # tools/demo_recorder.py
+│   └── test_vision_benchmark.py # tools/vision_benchmark.py
 │
 ├── environment/                 # RL environment (Gymnasium-compatible)
 │   ├── actions.py               # Shared action-index constants (7 Phase 1 actions)
@@ -281,8 +288,11 @@ Prints sustained FPS, latency stats, and a tier recommendation (20 / 30 / 60 Hz)
 ### Running Tests
 
 ```bash
-uv run pytest tests/
+uv sync --group dev          # install pytest + pytest-mock (first time only)
+uv run pytest tests/         # run all tests
 ```
+
+See [TESTING.md](TESTING.md) for a full breakdown of test coverage, how to run individual suites, and mocking conventions.
 
 ---
 
