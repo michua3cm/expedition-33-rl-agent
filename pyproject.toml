@@ -11,4 +11,11 @@ dependencies = [
     "pandas==3.0.0",
     "pywin32==311",
     "ultralytics",
+    "pynput",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
 ]
