@@ -23,6 +23,7 @@ The agent interacts with the game purely through visual inputs (screen capture) 
 - **Gymnasium Environment:** `Expedition33Env` wraps the game as a standard `gym.Env` with a 30-dim observation space and 7-action discrete action space.
 - **Async State Buffer:** `StateBuffer` runs screen capture and vision inference on a background thread at configurable Hz so the policy loop is never stalled waiting for a frame.
 - **Human Demo Recorder:** Records human gameplay as `(observation, action, timestamp)` trajectories saved as compressed `.npz` files for imitation learning.
+- **Vision Benchmark Tool:** Profiles all vision engines against saved screenshots (FPS, latency percentiles, detection rates) and runs a live capture stress test to recommend a safe poll Hz for your hardware.
 - **Non-Intrusive Capture:** `mss` screen capture at >60 FPS without hooking into the game process.
 - **Transparent Debug Overlay:** Win32-based HUD draws real-time bounding boxes and confidence scores over the game.
 - **Data Logging Pipeline:** Records detected game events to CSV for ROI analysis and RL environment setup.
@@ -56,7 +57,11 @@ expedition-33-rl-agent/
 ├── tools/                       # Offline pipeline tools
 │   ├── auto_label.py            # PIXEL → YOLO label generator + dataset.yaml
 │   ├── train.py                 # YOLOv8 training wrapper
-│   └── demo_recorder.py         # Human gameplay demonstration recorder
+│   ├── demo_recorder.py         # Human gameplay demonstration recorder
+│   └── vision_benchmark.py      # Vision engine performance profiler + live stress test
+│
+├── tests/                       # Unit tests (pytest)
+│   └── test_vision_benchmark.py # Tests for vision_benchmark.py
 │
 ├── environment/                 # RL environment (Gymnasium-compatible)
 │   ├── actions.py               # Shared action-index constants (7 Phase 1 actions)
@@ -107,6 +112,12 @@ uv sync
 ```
 
 `uv sync` creates the `.venv` and installs all locked dependencies including `ultralytics` for YOLO and `pynput` for the demo recorder.
+
+**Install dev dependencies (required to run tests):**
+
+```bash
+uv sync --group dev
+```
 
 ## Usage
 
@@ -226,6 +237,52 @@ Press **Ctrl+C** to stop recording. The trajectory is saved automatically as a c
 - `observations` — `float32 (N, 30)`: vision state at each timestep
 - `actions` — `int32 (N,)`: action index per timestep
 - `timestamps` — `float64 (N,)`: Unix timestamp of each capture
+
+---
+
+### Vision Benchmark
+
+Profile all vision engines offline or run a live capture stress test to determine the safe poll rate for your hardware.
+
+**Offline benchmark** — runs engines against saved screenshots:
+
+```bash
+uv run python -m tools.vision_benchmark                             # PIXEL vs SIFT vs ORB
+uv run python -m tools.vision_benchmark --engines PIXEL ORB        # specific engines
+uv run python -m tools.vision_benchmark --csv results/bench.csv    # save summary to CSV
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--engines` | `PIXEL SIFT ORB` | Space-separated engine names to benchmark |
+| `--img-dir` | `data/screenshots` | Directory of `.png`/`.jpg` screenshots |
+| `--limit` | all | Max images per engine |
+| `--warmup` | `5` | Warmup frames excluded from timing |
+| `--csv` | — | Optional path to save summary as CSV |
+
+Outputs three tables: throughput/latency (FPS, mean/median/p95/max ms), detection rate per label, and mean confidence per label.
+
+**Live capture stress test** — measures full-pipeline FPS (screen capture + inference) and recommends a poll Hz:
+
+```bash
+uv run python -m tools.vision_benchmark --live --live-engine PIXEL
+uv run python -m tools.vision_benchmark --live --live-engine ORB --live-duration 30
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--live-engine` | `PIXEL` | Engine to stress test |
+| `--live-duration` | `10` | Test duration in seconds |
+
+Prints sustained FPS, latency stats, and a tier recommendation (20 / 30 / 60 Hz) with 1.2× headroom. Use the result to set `--hz` in the demo recorder or `poll_hz` in `StateBuffer`.
+
+---
+
+### Running Tests
+
+```bash
+uv run pytest tests/
+```
 
 ---
 
