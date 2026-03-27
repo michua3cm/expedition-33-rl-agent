@@ -13,3 +13,9 @@ dependencies = [
     "ultralytics",
     "pynput",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
+]
