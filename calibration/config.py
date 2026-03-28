@@ -106,18 +106,24 @@ TARGETS = {
         "min_matches": 12
     },
     "TURN_ALLY": {
-        # Phase signal: blue-backed wide rectangle in the top-left turn
-        # order UI — a player character is currently acting. Wait, do nothing.
+        # Phase signal: the top (active) card in the turn order UI has blue
+        # border lines around it — a player character is currently acting.
+        # Template: crop of the blue border strip only, no portrait.
+        # color_mode=True: blue vs red is invisible in greyscale.
         "file": "template_turn_ally.png",
         "color": "blue",
+        "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12
     },
     "TURN_ENEMY": {
-        # Phase signal: red-backed wide rectangle in the top-left turn
-        # order UI — an enemy is currently acting. Defensive actions valid.
+        # Phase signal: the top (active) card in the turn order UI has red
+        # border lines around it — an enemy is currently acting. React now.
+        # Template: crop of the red border strip only, no portrait.
+        # color_mode=True: blue vs red is invisible in greyscale.
         "file": "template_turn_enemy.png",
         "color": "red",
+        "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12
     },
