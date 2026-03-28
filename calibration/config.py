@@ -30,9 +30,10 @@ MONITOR_INDEX = 1
 #   Action cues     — icon/effect prompting the player to act
 #   Phase signals   — UI elements indicating the current combat phase
 #
-# NOTE: template files for the 5 new targets (JUMP_CUE, BATTLE_WHEEL,
-# TURN_ALLY, TURN_ENEMY, GRADIENT_INCOMING) must be collected in-game
-# before PIXEL/SIFT/ORB engines can use them.
+# NOTE: template files for 4 targets (JUMP_CUE, BATTLE_WHEEL, TURN_ALLY,
+# TURN_ENEMY) must be collected in-game and saved to assets/ before
+# PIXEL/SIFT/ORB engines can use them.
+# GRADIENT_INCOMING uses frame-wide HSV saturation (no template file needed).
 #
 TARGETS = {
     # ------------------------------------------------------------------ #
@@ -130,9 +131,11 @@ TARGETS = {
     "GRADIENT_INCOMING": {
         # Phase signal: grey screen overlay — enemy is launching a gradient
         # attack. Only occurs during TURN_ENEMY. Response: GRADIENT_PARRY (W).
-        "file": "template_gradient_incoming.png",
+        # Detected by frame-wide saturation drop (no template file).
+        # hsv_sat_max: mean S-channel (0–255) threshold; tune via calibration.
+        "file": None,
         "color": "purple",
-        "threshold": 0.70,
+        "hsv_sat_max": 40,
         "min_matches": 10
     },
 }
