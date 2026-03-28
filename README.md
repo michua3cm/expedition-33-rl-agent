@@ -149,8 +149,10 @@ All targets, thresholds, and paths are defined in `calibration/config.py`.
 **Target configuration** (`TARGETS` dict, per-entry fields):
 - `threshold` — PIXEL engine confidence cutoff (0.0–1.0). Higher = fewer false positives.
 - `min_matches` — SIFT/ORB minimum good feature matches to confirm a detection.
+- `color_mode` — *(optional, default `False`)* If `True`, the PIXEL engine loads and matches the template in BGR instead of greyscale. Required for targets whose only distinguishing feature is colour (e.g. `TURN_ALLY` blue border vs `TURN_ENEMY` red border). Has no effect on SIFT, ORB, or YOLO.
+- `hsv_sat_max` — *(optional)* Enables template-free detection via frame-wide HSV saturation drop. Set `file: None` and provide this value (0–255 scale); the PIXEL engine fires when mean saturation falls below the threshold. Used for `GRADIENT_INCOMING` (grey screen overlay). Tune during calibration.
 - `autolabel_engine` — *(optional, default `"PIXEL"`)* Engine used by `autolabel` to generate YOLO training labels for this target. Override to `"SIFT"` or `"ORB"` for targets with animated or scale-varying icons that PIXEL cannot reliably match (e.g. `JUMP_CUE`).
-- YOLO ignores both; it uses the model's own confidence output.
+- YOLO ignores `threshold` and `min_matches`; it uses the model's own confidence output.
 
 ---
 
