@@ -149,6 +149,7 @@ All targets, thresholds, and paths are defined in `calibration/config.py`.
 **Target configuration** (`TARGETS` dict, per-entry fields):
 - `threshold` — PIXEL engine confidence cutoff (0.0–1.0). Higher = fewer false positives.
 - `min_matches` — SIFT/ORB minimum good feature matches to confirm a detection.
+- `autolabel_engine` — *(optional, default `"PIXEL"`)* Engine used by `autolabel` to generate YOLO training labels for this target. Override to `"SIFT"` or `"ORB"` for targets with animated or scale-varying icons that PIXEL cannot reliably match (e.g. `JUMP_CUE`).
 - YOLO ignores both; it uses the model's own confidence output.
 
 ---
