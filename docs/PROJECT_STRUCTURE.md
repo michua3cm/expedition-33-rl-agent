@@ -83,6 +83,6 @@ expedition-33-rl-agent/
 
 ## Key Design Decisions
 
-- **Vision engines are fully interchangeable.** `VisionEngine` is an ABC with `load()` and `detect()`. All callers use `registry.create(name)` — no engine-specific imports outside `vision/engines/`.
+- **Vision engines are fully interchangeable.** `VisionEngine` is an ABC with `load()`, `detect()`, and `needs_color`. When `needs_color` is `True` the caller passes a BGR frame instead of greyscale; engines handle their own internal conversion. All callers use `registry.create(name)` — no engine-specific imports outside `vision/engines/`.
 - **`environment/` has no win32 dependency at the gym level.** `Expedition33Env` and `StateBuffer` only import `GameInstance`, which isolates the Windows-specific `GameController` behind one interface.
 - **`tools/` are offline-first.** `demo_recorder.py` and `vision_benchmark.py` can be coded and tested without the game running. They only need the game live when actually recording or stress-testing.
