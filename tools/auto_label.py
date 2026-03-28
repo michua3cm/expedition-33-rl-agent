@@ -1,13 +1,21 @@
 """
-Auto-labeler: runs PixelEngine on raw screenshots and generates YOLO label files.
+Auto-labeler: runs vision engines on raw screenshots and generates YOLO label files.
 
 Pipeline:
   1. Reads all .png images from data/yolo_dataset/images/raw/
-  2. Runs PixelEngine on each frame
-  3. Converts detections to YOLO format (normalised x_center, y_center, w, h)
-  4. Splits into train/val (default 80/20)
-  5. Copies images and labels to train/ and val/ directories
-  6. Writes dataset.yaml
+  2. Groups TARGETS by their autolabel_engine (default: PIXEL).
+  3. Runs each engine on every image and merges detections.
+  4. Converts detections to YOLO format (normalised x_center, y_center, w, h)
+  5. Splits into train/val (default 80/20)
+  6. Copies images and labels to train/ and val/ directories
+  7. Writes dataset.yaml
+
+Per-target engine override:
+  Set ``autolabel_engine`` in a target's config entry to use a different engine
+  for that target during labeling.  Example: JUMP_CUE uses SIFT because its
+  icon is animated and scale-varying — PIXEL template matching requires exact
+  pixel dimensions and cannot handle it.  SIFT is scale- and rotation-invariant
+  and detects the icon reliably from a single template crop.
 
 YOLO label format (one line per detection):
   <class_id> <x_center_norm> <y_center_norm> <width_norm> <height_norm>
@@ -18,6 +26,7 @@ from __future__ import annotations
 import os
 import random
 import shutil
+from collections import defaultdict
 
 import cv2
 
@@ -29,14 +38,29 @@ DATASET_DIR  = os.path.join("data", "yolo_dataset")
 RAW_DIR      = os.path.join(DATASET_DIR, "images", "raw")
 DATASET_YAML = os.path.join(DATASET_DIR, "dataset.yaml")
 
-SPLITS = {
-    "train": 0.8,
-    "val":   0.2,
-}
-
 # Class IDs — sorted alphabetically for reproducibility
 CLASS_NAMES: list[str] = sorted(TARGETS.keys())
 CLASS_ID: dict[str, int] = {name: i for i, name in enumerate(CLASS_NAMES)}
+
+
+def _build_engines() -> list[vision.VisionEngine]:
+    """
+    Load one engine instance per unique autolabel_engine value in TARGETS.
+    Each engine is loaded with only the targets assigned to it.
+    """
+    engine_targets: dict[str, dict] = defaultdict(dict)
+    for label, cfg in TARGETS.items():
+        engine_name = cfg.get("autolabel_engine", "PIXEL").upper()
+        engine_targets[engine_name][label] = cfg
+
+    engines: list[vision.VisionEngine] = []
+    for engine_name, targets in engine_targets.items():
+        eng = vision.registry.create(engine_name)
+        eng.load(targets, ASSETS_DIR)
+        engines.append(eng)
+        print(f"[AutoLabel] Engine '{engine_name}' handles: {sorted(targets.keys())}")
+
+    return engines
 
 
 def _detection_to_yolo(det: vision.Detection, img_w: int, img_h: int) -> str:
@@ -72,7 +96,6 @@ def run(val_split: float = 0.2, include_negatives: bool = True) -> None:
         include_negatives: If True, images with zero detections are included as
                            negative samples (empty label file). Helps reduce false positives.
     """
-    # Collect raw images
     if not os.path.isdir(RAW_DIR):
         print(f"[AutoLabel] Error: raw image directory not found: '{RAW_DIR}'")
         print("[AutoLabel] Run 'uv run main.py collect' first.")
@@ -89,9 +112,7 @@ def run(val_split: float = 0.2, include_negatives: bool = True) -> None:
 
     print(f"[AutoLabel] Found {len(image_files)} images.")
 
-    # Load PixelEngine once
-    engine = vision.registry.create("PIXEL")
-    engine.load(TARGETS, ASSETS_DIR)
+    engines = _build_engines()
 
     # Prepare output directories
     for split in ("train", "val"):
@@ -112,13 +133,28 @@ def run(val_split: float = 0.2, include_negatives: bool = True) -> None:
     for split, files in split_map.items():
         for filename in files:
             img_path = os.path.join(RAW_DIR, filename)
-            frame = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-            if frame is None:
+
+            # Load BGR once; derive grey lazily if any engine needs it.
+            bgr_frame = cv2.imread(img_path, cv2.IMREAD_COLOR)
+            if bgr_frame is None:
                 print(f"[AutoLabel] Warning: could not read '{filename}', skipping.")
                 continue
 
-            img_h, img_w = frame.shape
-            detections = engine.detect(frame)
+            grey_frame: cv2.typing.MatLike | None = None
+
+            def _grey() -> cv2.typing.MatLike:
+                nonlocal grey_frame
+                if grey_frame is None:
+                    grey_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2GRAY)
+                return grey_frame
+
+            img_h, img_w = bgr_frame.shape[:2]
+
+            # Run all engines and merge their detections.
+            detections: list[vision.Detection] = []
+            for eng in engines:
+                frame = bgr_frame if eng.needs_color else _grey()
+                detections.extend(eng.detect(frame))
 
             if not detections and not include_negatives:
                 continue

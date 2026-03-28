@@ -81,6 +81,23 @@ expedition-33-rl-agent/
 | `tools/` | Offline utilities — YOLO pipeline, demo recording, benchmarking | vision/, environment/, calibration/ |
 | `tests/` | Unit tests — all external deps mocked | pytest, pytest-mock |
 
+## Known Limitations and Design Notes
+
+### JUMP_CUE — Why PIXEL cannot auto-label it
+
+`JUMP_CUE` is a golden starburst/cross icon that appears mid-combat to signal that only a jump avoids the incoming attack. Unlike static UI elements (e.g. `PERFECT`, `BATTLE_WHEEL`), this icon:
+
+1. **Animates continuously** — it shrinks from a large size, then grows and fades out over ~0.5 s.
+2. **Scales with camera distance** — different enemy attacks render the icon at different base sizes.
+
+Template matching (`PIXEL`) requires the in-game icon to be the **exact same pixel dimensions** as the template crop. Because neither condition holds, PIXEL will miss most occurrences and cannot be used to auto-generate YOLO labels for this target.
+
+**Solution:** `JUMP_CUE` sets `"autolabel_engine": "SIFT"` in `calibration/config.py`. SIFT is scale- and rotation-invariant — it extracts keypoints from a single template crop and matches them in a live frame regardless of the icon's current size or rotation. The autolabel pipeline (`tools/auto_label.py`) reads `autolabel_engine` per target and loads the appropriate engine, so all other targets continue to use PIXEL while JUMP_CUE uses SIFT.
+
+**For YOLO training data:** the animation is an advantage — auto-capturing during gameplay naturally produces screenshots of the icon at many sizes within a single session, which improves the trained model's scale robustness.
+
+---
+
 ## Key Design Decisions
 
 - **Vision engines are fully interchangeable.** `VisionEngine` is an ABC with `load()` and `detect()`. All callers use `registry.create(name)` — no engine-specific imports outside `vision/engines/`.
