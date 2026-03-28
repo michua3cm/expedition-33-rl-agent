@@ -33,7 +33,7 @@ class VisionEngine(ABC):
 
     Contract:
       - load()   prepares the engine once at startup
-      - detect() takes a greyscale ROI frame, returns detections
+      - detect() takes a ROI frame (greyscale by default, BGR if needs_color)
       - Engines never touch the overlay, logger, or offset — callers handle that
     """
 
@@ -41,6 +41,16 @@ class VisionEngine(ABC):
     @abstractmethod
     def name(self) -> str:
         """Short identifier used in logs and the registry (e.g. 'PIXEL')."""
+
+    @property
+    def needs_color(self) -> bool:
+        """
+        Return True if this engine requires a BGR frame instead of greyscale.
+
+        Callers (GameInstance, StateBuffer) check this after load() and pass
+        the appropriate frame format to detect().  Default: False.
+        """
+        return False
 
     @abstractmethod
     def load(self, targets: dict, assets_dir: str) -> None:
@@ -55,10 +65,11 @@ class VisionEngine(ABC):
     @abstractmethod
     def detect(self, frame: np.ndarray) -> list[Detection]:
         """
-        Run detection on a single greyscale frame cropped to the active ROI.
+        Run detection on a single ROI frame.
 
         Args:
-            frame: Greyscale numpy array (dtype uint8).
+            frame: Greyscale uint8 array by default.  BGR uint8 array when the
+                   engine's needs_color property returns True.
 
         Returns:
             List of Detection objects; empty list if nothing found.
