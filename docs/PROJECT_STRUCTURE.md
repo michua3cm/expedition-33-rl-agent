@@ -14,7 +14,7 @@ expedition-33-rl-agent/
 │   ├── engine.py                # VisionEngine ABC, Detection and GameState dataclasses
 │   ├── registry.py              # @register decorator + create() factory
 │   └── engines/
-│       ├── pixel.py             # Template matching (TM_CCOEFF_NORMED)
+│       ├── pixel.py             # Template matching (grey/BGR) + HSV saturation threshold
 │       ├── sift.py              # SIFT feature matching (FLANN + Lowe's ratio test)
 │       ├── orb.py               # ORB + BFMatcher (Hamming distance)
 │       └── yolo.py              # YOLOv8 inference engine
