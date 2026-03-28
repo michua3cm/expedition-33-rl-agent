@@ -49,15 +49,20 @@ class GameInstance:
         sct_img = self.sct.grab(self.monitor)
         return cv2.cvtColor(np.array(sct_img), cv2.COLOR_BGRA2GRAY)
 
+    def capture_color_frame(self) -> np.ndarray:
+        """Capture the current game screen as a BGR ROI frame."""
+        sct_img = self.sct.grab(self.monitor)
+        return cv2.cvtColor(np.array(sct_img), cv2.COLOR_BGRA2BGR)
+
     def get_current_state(self, include_frame: bool = False) -> vision.GameState:
         """
         Run the vision engine on the current screen and return a GameState.
 
         Args:
-            include_frame: If True, attaches the raw greyscale frame to the
-                           GameState (useful for pixel-based / CNN policies).
+            include_frame: If True, attaches the raw frame to the GameState
+                           (greyscale for standard engines, BGR for color engines).
         """
-        frame = self.capture_frame()
+        frame = self.capture_color_frame() if self.vision_engine.needs_color else self.capture_frame()
         detections = self.vision_engine.detect(frame)
         return vision.GameState(
             detections=detections,
