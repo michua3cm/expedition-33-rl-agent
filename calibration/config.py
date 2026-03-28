@@ -79,10 +79,19 @@ TARGETS = {
     "JUMP_CUE": {
         # Action cue: golden starburst/cross icon on screen — this attack
         # can only be avoided by jumping (SPACE). Collect template in-game.
+        #
+        # autolabel_engine: "SIFT" — PIXEL cannot auto-label this target.
+        # The icon animates (shrinks → grows → fades) and its size varies
+        # with camera distance per enemy attack, so template matching at a
+        # fixed pixel size will never reliably match it. SIFT is scale- and
+        # rotation-invariant and can detect the icon across all size variants
+        # from a single template crop. See docs/PROJECT_STRUCTURE.md for the
+        # full design rationale.
         "file": "template_jump_cue.png",
         "color": "gold",
         "threshold": 0.70,
-        "min_matches": 10
+        "min_matches": 10,
+        "autolabel_engine": "SIFT",
     },
     "MOUSE": {
         # Action cue: mouse cursor icon — appears after a successful jump,
