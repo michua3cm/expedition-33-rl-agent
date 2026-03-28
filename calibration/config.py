@@ -30,9 +30,10 @@ MONITOR_INDEX = 1
 #   Action cues     — icon/effect prompting the player to act
 #   Phase signals   — UI elements indicating the current combat phase
 #
-# NOTE: template files for the 5 new targets (JUMP_CUE, BATTLE_WHEEL,
-# TURN_ALLY, TURN_ENEMY, GRADIENT_INCOMING) must be collected in-game
-# before PIXEL/SIFT/ORB engines can use them.
+# NOTE: template files for 4 targets (JUMP_CUE, BATTLE_WHEEL, TURN_ALLY,
+# TURN_ENEMY) must be collected in-game and saved to assets/ before
+# PIXEL/SIFT/ORB engines can use them.
+# GRADIENT_INCOMING uses frame-wide HSV saturation (no template file needed).
 #
 TARGETS = {
     # ------------------------------------------------------------------ #
@@ -115,27 +116,35 @@ TARGETS = {
         "min_matches": 12
     },
     "TURN_ALLY": {
-        # Phase signal: blue-backed wide rectangle in the top-left turn
-        # order UI — a player character is currently acting. Wait, do nothing.
+        # Phase signal: the top (active) card in the turn order UI has blue
+        # border lines around it — a player character is currently acting.
+        # Template: crop of the blue border strip only, no portrait.
+        # color_mode=True: blue vs red is invisible in greyscale.
         "file": "template_turn_ally.png",
         "color": "blue",
+        "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12
     },
     "TURN_ENEMY": {
-        # Phase signal: red-backed wide rectangle in the top-left turn
-        # order UI — an enemy is currently acting. Defensive actions valid.
+        # Phase signal: the top (active) card in the turn order UI has red
+        # border lines around it — an enemy is currently acting. React now.
+        # Template: crop of the red border strip only, no portrait.
+        # color_mode=True: blue vs red is invisible in greyscale.
         "file": "template_turn_enemy.png",
         "color": "red",
+        "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12
     },
     "GRADIENT_INCOMING": {
         # Phase signal: grey screen overlay — enemy is launching a gradient
         # attack. Only occurs during TURN_ENEMY. Response: GRADIENT_PARRY (W).
-        "file": "template_gradient_incoming.png",
+        # Detected by frame-wide saturation drop (no template file).
+        # hsv_sat_max: mean S-channel (0–255) threshold; tune via calibration.
+        "file": None,
         "color": "purple",
-        "threshold": 0.70,
+        "hsv_sat_max": 40,
         "min_matches": 10
     },
 }
