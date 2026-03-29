@@ -346,10 +346,12 @@ def run_live_stress_test(
     with mss.mss() as sct:
         monitor = sct.monitors[MONITOR_INDEX]
 
+        color_flag = cv2.COLOR_BGRA2BGR if eng.needs_color else cv2.COLOR_BGRA2GRAY
+
         # Warmup — not timed
         for _ in range(warmup):
             raw = sct.grab(monitor)
-            frame = cv2.cvtColor(np.array(raw), cv2.COLOR_BGRA2GRAY)
+            frame = cv2.cvtColor(np.array(raw), color_flag)
             eng.detect(frame)
 
         # Timed run
@@ -357,7 +359,7 @@ def run_live_stress_test(
         while time.perf_counter() < deadline:
             t0 = time.perf_counter()
             raw = sct.grab(monitor)
-            frame = cv2.cvtColor(np.array(raw), cv2.COLOR_BGRA2GRAY)
+            frame = cv2.cvtColor(np.array(raw), color_flag)
             eng.detect(frame)
             result.latencies.append(time.perf_counter() - t0)
 

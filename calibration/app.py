@@ -76,7 +76,10 @@ class CalibrationApp:
 
                 # 2. Capture frame
                 screenshot = np.array(self.sct.grab(self.monitor_config))
-                img_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2GRAY)
+                if self.vision_engine.needs_color:
+                    frame = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
+                else:
+                    frame = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2GRAY)
 
                 self.overlay.clear()
                 off_x = self.monitor_config["left"]
@@ -84,7 +87,7 @@ class CalibrationApp:
                 status_parts = [f"FPS: {fps:.1f}"]
 
                 # 3. Detect
-                detections = self.vision_engine.detect(img_gray)
+                detections = self.vision_engine.detect(frame)
 
                 # 4. Draw all detections on overlay and log them
                 for det in detections:
