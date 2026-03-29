@@ -16,7 +16,7 @@ VK_EXIT  = 0x7A  # F11
 
 
 class CalibrationApp:
-    def __init__(self, engine="PIXEL"):
+    def __init__(self, engine="COMPOSITE"):
         self.engine_name = engine.upper()
         self.sct = mss.mss()
         self.monitor_config = self._setup_monitor()
