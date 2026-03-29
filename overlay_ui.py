@@ -45,7 +45,7 @@ class OverlayWindow:
     def draw_box(self, x, y, w, h, color, label):
         """Draws a bounding box and a label on the overlay."""
         self.canvas.create_rectangle(x, y, x+w, y+h, outline=color, width=3)
-        self.canvas.create_text(x, y-15, text=label, fill=color, font=("Arial", 14, "bold"), anchor="nw")
+        self.canvas.create_text(x, y-22, text=label, fill=color, font=("Arial", 14), anchor="nw")
 
     def draw_status(self, text, color="white"):
         """Displays the current program state in the top-left corner."""
