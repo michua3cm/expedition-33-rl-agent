@@ -14,10 +14,14 @@ class GameInstance:
     Acts as the bridge between the AI Agent and the Game Process.
     """
 
-    def __init__(self, engine: str = "PIXEL", roi: dict | None = None):
+    def __init__(self, engine: str = "COMPOSITE", roi: dict | None = None):
         """
         Args:
-            engine: Vision engine name ('PIXEL', 'SIFT', …). Case-insensitive.
+            engine: Vision engine name ('COMPOSITE', 'PIXEL', 'SIFT', …).
+                    COMPOSITE (default) routes each target to the engine
+                    specified in its config, enabling mixed PIXEL/SIFT/colour
+                    detection in a single pass.  Pass a specific engine name
+                    to force all targets through one engine (useful for testing).
             roi:    Optimised monitor region from calibration analysis.
                     If None, falls back to the default centre crop.
         """
