@@ -21,7 +21,7 @@ DEFAULT_MIN_MATCHES = 12
 # 0: All monitors
 # 1: monitor 1
 # 2: monitor 2 ... and so on
-MONITOR_INDEX = 1
+MONITOR_INDEX = 0
 
 # --- TARGETS DEFINITION ---
 #
@@ -113,7 +113,7 @@ TARGETS = {
         # selection turn. When present: offensive phase, no defense needed.
         # engine: "SIFT" — button positions shift per scenario; Attack button
         # crop is the stable anchor. SIFT handles the layout variation.
-        "file": "template_battle_wheel.png",
+        "file": "template_battle_wheel_attack.png",
         "color": "white",
         "threshold": 0.75,
         "min_matches": 12,
