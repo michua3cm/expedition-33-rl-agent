@@ -35,13 +35,17 @@ class SIFTEngine(VisionEngine):
     def load(self, targets: dict, assets_dir: str) -> None:
         self._templates.clear()
         for label, cfg in targets.items():
-            path = os.path.join(assets_dir, cfg["file"])
+            file_name = cfg.get("file")
+            if file_name is None:
+                print(f"[SIFTEngine] Skipping '{label}' (no template file — not supported by SIFT).")
+                continue
+            path = os.path.join(assets_dir, file_name)
             if not os.path.exists(path):
-                print(f"[SIFTEngine] Warning: '{cfg['file']}' not found, skipping '{label}'.")
+                print(f"[SIFTEngine] Warning: '{file_name}' not found, skipping '{label}'.")
                 continue
             img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
             if img is None:
-                print(f"[SIFTEngine] Error: failed to load '{cfg['file']}'.")
+                print(f"[SIFTEngine] Error: failed to load '{file_name}'.")
                 continue
             kp, des = self._sift.detectAndCompute(img, None)
             min_matches = cfg.get("min_matches", _DEFAULT_MIN_MATCHES)
