@@ -80,7 +80,7 @@ TARGETS = {
         # Action cue: golden starburst/cross icon on screen — this attack
         # can only be avoided by jumping (SPACE). Collect template in-game.
         #
-        # autolabel_engine: "SIFT" — PIXEL cannot auto-label this target.
+        # engine / autolabel_engine: "SIFT" — PIXEL cannot match this target.
         # The icon animates (shrinks → grows → fades) and its size varies
         # with camera distance per enemy attack, so template matching at a
         # fixed pixel size will never reliably match it. SIFT is scale- and
@@ -91,6 +91,7 @@ TARGETS = {
         "color": "gold",
         "threshold": 0.70,
         "min_matches": 10,
+        "engine": "SIFT",
         "autolabel_engine": "SIFT",
     },
     "MOUSE": {
@@ -110,10 +111,14 @@ TARGETS = {
     "BATTLE_WHEEL": {
         # Phase signal: circular action menu visible during the player's
         # selection turn. When present: offensive phase, no defense needed.
+        # engine: "SIFT" — button positions shift per scenario; Attack button
+        # crop is the stable anchor. SIFT handles the layout variation.
         "file": "template_battle_wheel.png",
         "color": "white",
         "threshold": 0.75,
-        "min_matches": 12
+        "min_matches": 12,
+        "engine": "SIFT",
+        "autolabel_engine": "SIFT",
     },
     "TURN_ALLY": {
         # Phase signal: the top (active) card in the turn order UI has blue
