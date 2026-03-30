@@ -121,12 +121,13 @@ TARGETS = {
         "autolabel_engine": "SIFT",
     },
     "TURN_ALLY": {
-        # Phase signal: the top (active) card in the turn order UI has blue
-        # border lines around it — a player character is currently acting.
-        # Template: crop of the blue border strip only, no portrait.
-        # color_mode=True: blue vs red is invisible in greyscale.
+        # Phase signal: the top (active) card in the turn order UI has a gold
+        # border around it — a player character is currently acting.
+        # Template: crop of the gold border strip only, no portrait.
+        # color_mode=True: gold vs red is invisible in greyscale.
+        # color: "gold" — RGB (167,137,66), hue ~42° standard / ~21 OpenCV HSV.
         "file": "template_turn_ally.png",
-        "color": "blue",
+        "color": "gold",
         "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12
