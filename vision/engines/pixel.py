@@ -15,6 +15,16 @@ _KIND_GREY    = "grey"     # greyscale template matching (default)
 _KIND_COLOR   = "color"    # BGR template matching (color_mode: True)
 _KIND_HSV_SAT = "hsv_sat"  # frame-wide saturation drop (no template file)
 
+# HSV hue ranges (OpenCV scale: 0–180) used to validate color-mode detections.
+# Red wraps around 0, so it has two ranges.
+_HUE_RANGES: dict[str, list[tuple[int, int]]] = {
+    "red":    [(0, 10), (170, 180)],
+    "blue":   [(100, 130)],
+    "green":  [(40, 80)],
+    "yellow": [(20, 35)],
+    "purple": [(130, 160)],
+}
+
 
 @register("PIXEL")
 class PixelEngine(VisionEngine):
@@ -80,6 +90,7 @@ class PixelEngine(VisionEngine):
                 "w": img.shape[1],
                 "h": img.shape[0],
                 "threshold": threshold,
+                "color": cfg.get("color") if color_mode else None,
             }
             print(f"[PixelEngine] Loaded '{label}' ({kind}, threshold={threshold})")
 
@@ -123,13 +134,29 @@ class PixelEngine(VisionEngine):
             src = frame if kind == _KIND_COLOR else _grey()
             res = cv2.matchTemplate(src, data["image"], cv2.TM_CCOEFF_NORMED)
             loc = np.where(res >= data["threshold"])
+            expected_color = data.get("color")
+            hue_ranges = _HUE_RANGES.get(expected_color) if expected_color else None
             for pt in zip(*loc[::-1]):
+                x, y = int(pt[0]), int(pt[1])
+                w, h = data["w"], data["h"]
+                # Color validation: reject hits whose dominant hue doesn't
+                # match the expected color.  Guards against structurally
+                # similar templates (e.g. TURN_ALLY blue vs TURN_ENEMY red)
+                # that TM_CCOEFF_NORMED can confuse because it subtracts the
+                # channel mean before correlating.
+                if hue_ranges is not None:
+                    roi_hsv = cv2.cvtColor(frame[y:y + h, x:x + w], cv2.COLOR_BGR2HSV)
+                    sat_mask = roi_hsv[:, :, 1] > 40  # ignore near-grey pixels
+                    if sat_mask.any():
+                        dominant_hue = float(np.median(roi_hsv[:, :, 0][sat_mask]))
+                        if not any(lo <= dominant_hue <= hi for lo, hi in hue_ranges):
+                            continue
                 results.append(Detection(
                     label=label,
-                    x=int(pt[0]),
-                    y=int(pt[1]),
-                    w=data["w"],
-                    h=data["h"],
+                    x=x,
+                    y=y,
+                    w=w,
+                    h=h,
                     confidence=float(res[pt[1], pt[0]]),
                 ))
 
