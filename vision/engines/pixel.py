@@ -5,7 +5,7 @@ import os
 import cv2
 import numpy as np
 
-from ..engine import Detection, VisionEngine
+from ..engine import Detection, VisionEngine, nms
 from ..registry import register
 
 _DEFAULT_THRESHOLD = 0.6
@@ -133,4 +133,4 @@ class PixelEngine(VisionEngine):
                     confidence=float(res[pt[1], pt[0]]),
                 ))
 
-        return results
+        return nms(results)
