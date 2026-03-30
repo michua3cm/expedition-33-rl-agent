@@ -1,37 +1,39 @@
 from __future__ import annotations
 
-from collections import defaultdict
-
 import cv2
 import numpy as np
 
 from ..engine import Detection, VisionEngine
 from ..registry import create, register
 
+_DEFAULT_ENGINE = "PIXEL"
+
 
 @register("COMPOSITE")
 class CompositeEngine(VisionEngine):
     """
-    Meta-engine that routes each target to its own sub-engine.
+    Meta-engine that routes each target to its designated sub-engine.
 
-    Each target in the config may specify an ``engine`` field (e.g.
-    ``"engine": "SIFT"``).  Targets without the field default to PIXEL.
-    CompositeEngine creates one sub-engine per unique engine name, loads
-    each with only its assigned targets, then merges results on every
-    detect() call.
+    Each target config may include an optional ``engine`` key specifying
+    which engine handles that target.  Targets without an ``engine`` key
+    default to PIXEL.  This allows mixing fast template matching for
+    simple icons with SIFT/ORB for scale-invariant targets, or YOLO for
+    production inference — all in a single detect() pass.
 
-    This lets targets with different matching needs (template pixel
-    matching, colour detection, scale-invariant keypoint matching) coexist
-    in a single detection pass without any code changes in callers.
+    Example target config::
+
+        "PERFECT": {"file": "template_perfect.png", "threshold": 0.65},
+        "JUMP_CUE": {"file": "template_jump.png", "engine": "SIFT"},
 
     Frame handling:
         needs_color returns True when any sub-engine needs a BGR frame.
-        detect() downgrades BGR→GREY for sub-engines that don't need colour,
-        so each sub-engine always receives the format it expects.
+        detect() lazily converts BGR→GREY for sub-engines that do not need
+        colour, so each sub-engine always receives the format it expects
+        without redundant conversions or extra captures at the caller level.
     """
 
     def __init__(self) -> None:
-        self._sub_engines: list[VisionEngine] = []
+        self._sub_engines: dict[str, VisionEngine] = {}  # engine_name → instance
 
     @property
     def name(self) -> str:
@@ -39,32 +41,47 @@ class CompositeEngine(VisionEngine):
 
     @property
     def needs_color(self) -> bool:
-        return any(eng.needs_color for eng in self._sub_engines)
+        return any(e.needs_color for e in self._sub_engines.values())
 
     def load(self, targets: dict, assets_dir: str) -> None:
-        groups: dict[str, dict] = defaultdict(dict)
-        for label, cfg in targets.items():
-            engine_name = cfg.get("engine", "PIXEL").upper()
-            groups[engine_name][label] = cfg
+        self._sub_engines.clear()
 
-        self._sub_engines = []
-        for engine_name, group_targets in groups.items():
-            eng = create(engine_name)
-            eng.load(group_targets, assets_dir)
-            self._sub_engines.append(eng)
+        # Group targets by their designated engine.
+        engine_targets: dict[str, dict] = {}
+        for label, cfg in targets.items():
+            engine_name = str(cfg.get("engine", _DEFAULT_ENGINE)).upper()
+            if engine_name not in engine_targets:
+                engine_targets[engine_name] = {}
+            engine_targets[engine_name][label] = cfg
+
+        # Instantiate each required sub-engine and load only its targets.
+        for engine_name, sub_targets in engine_targets.items():
+            sub_engine = create(engine_name)
+            sub_engine.load(sub_targets, assets_dir)
+            self._sub_engines[engine_name] = sub_engine
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
-        is_bgr = frame.ndim == 3
-        grey_frame: np.ndarray | None = None
+        """
+        Run each sub-engine on the correct frame format and merge results.
+
+        When needs_color is True the caller passes a BGR frame.  Sub-engines
+        that do not need colour receive a lazily-derived greyscale conversion
+        to avoid redundant cv2.cvtColor calls within a single detect() step.
+        When needs_color is False the caller already passed a greyscale frame,
+        so it is forwarded directly without any conversion.
+        """
+        grey: np.ndarray | None = None
 
         def _grey() -> np.ndarray:
-            nonlocal grey_frame
-            if grey_frame is None:
-                grey_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if is_bgr else frame
-            return grey_frame
+            nonlocal grey
+            if grey is None:
+                # Only called when self.needs_color is True, so frame is BGR.
+                grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            return grey
 
         results: list[Detection] = []
-        for eng in self._sub_engines:
-            eng_frame = frame if eng.needs_color else _grey()
-            results.extend(eng.detect(eng_frame))
+        for engine in self._sub_engines.values():
+            engine_frame = frame if engine.needs_color else (_grey() if self.needs_color else frame)
+            results.extend(engine.detect(engine_frame))
+
         return results
