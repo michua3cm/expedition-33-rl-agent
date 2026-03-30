@@ -37,6 +37,11 @@ class YOLOEngine(VisionEngine):
     def name(self) -> str:
         return "YOLO"
 
+    @property
+    def needs_color(self) -> bool:
+        """YOLO was trained on colour screenshots; always request a BGR frame."""
+        return True
+
     def load(self, targets: dict, assets_dir: str) -> None:
         if not os.path.exists(self._model_path):
             print(
