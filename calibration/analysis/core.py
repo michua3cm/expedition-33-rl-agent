@@ -1,38 +1,43 @@
+import json
 import os
 import glob
-import pandas as pd
-import numpy as np
+
 import mss
+import numpy as np
+import pandas as pd
+
 from ..config import LOG_DIR, MONITOR_INDEX
 
+_ROI_OUTPUT_PATH = os.path.join("data", "roi.json")
+
+
 class LogAnalyzer:
-    def __init__(self, padding=50):
+    def __init__(self, padding: int = 50) -> None:
         self.log_dir = LOG_DIR
         self.padding = padding
-        self.screen_w = 0
-        self.screen_h = 0
+        self.screen_w: int = 0
+        self.screen_h: int = 0
         self._get_screen_resolution()
 
-    def _get_screen_resolution(self):
+    def _get_screen_resolution(self) -> None:
         """Internal helper to get screen size for clamping."""
         with mss.mss() as sct:
             mon = sct.monitors[MONITOR_INDEX]
-            self.screen_w = mon['width']
-            self.screen_h = mon['height']
+            self.screen_w = mon["width"]
+            self.screen_h = mon["height"]
 
-    def load_and_merge_logs(self):
+    def load_and_merge_logs(self) -> pd.DataFrame | None:
         """Step 1: Load all CSV files and merge them."""
         search_path = os.path.join(self.log_dir, "*.csv")
-        all_files = glob.glob(search_path)  # Find all CSV files
-        
+        all_files = glob.glob(search_path)
+
         if not all_files:
             print(f"[Error] No log files found in {self.log_dir}")
             return None
 
         print(f"[Analyzer] Found {len(all_files)} log files.")
-        
-        # Load and Merge Data (DataFrame)
-        df_list = []
+
+        df_list: list[pd.DataFrame] = []
         for filename in all_files:
             try:
                 df = pd.read_csv(filename)
@@ -44,59 +49,56 @@ class LogAnalyzer:
         if not df_list:
             print("[Error] Logs exist but contain no valid data.")
             return None
-        
-        # Combine all dataframes
+
         return pd.concat(df_list, ignore_index=True)
 
-    def calculate_roi(self, df):
+    def calculate_roi(self, df: pd.DataFrame | None) -> dict | None:
         """Step 2: Analyze coordinates and apply padding."""
         if df is None or df.empty:
             return None
 
-        # Extract coordinates
-        # Columns: x, y, w, h, type
-        xs = df['x'].values
-        ys = df['y'].values
-        ws = df['w'].values
-        hs = df['h'].values
+        xs = df["x"].values
+        ys = df["y"].values
+        ws = df["w"].values
+        hs = df["h"].values
 
-        # Find absolute boundaries
         min_x = np.min(xs)
         max_x = np.max(xs + ws)
         min_y = np.min(ys)
         max_y = np.max(ys + hs)
 
-        # Apply padding and clamp to screen size
-        final_left = max(0, int(min_x - self.padding))
-        final_top = max(0, int(min_y - self.padding))
-        
-        final_right = min(self.screen_w, int(max_x + self.padding))
+        final_left   = max(0, int(min_x - self.padding))
+        final_top    = max(0, int(min_y - self.padding))
+        final_right  = min(self.screen_w, int(max_x + self.padding))
         final_bottom = min(self.screen_h, int(max_y + self.padding))
 
-        # Calculate final width/height
-        final_w = final_right - final_left
-        final_h = final_bottom - final_top
-
         return {
-            "top": final_top,
-            "left": final_left,
-            "width": final_w,
-            "height": final_h,
-            "mon": MONITOR_INDEX
+            "top":    final_top,
+            "left":   final_left,
+            "width":  final_right - final_left,
+            "height": final_bottom - final_top,
+            "mon":    MONITOR_INDEX,
         }
 
-    def output_result(self, roi):
-        """Step 3: Output the result clearly."""
+    def output_result(self, roi: dict | None) -> None:
+        """Step 3: Print the computed ROI to stdout."""
         if not roi:
             return
 
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("OPTIMAL REGION OF INTEREST (ROI)")
-        print("="*50)
+        print("=" * 50)
         print(f"Padding Applied: {self.padding}px")
         print("-" * 50)
         print("Copy this dictionary into your RL Agent config:")
         print("")
         print(f"MONITOR_ROI = {roi}")
         print("")
-        print("="*50)
+        print("=" * 50)
+
+    def save_roi(self, roi: dict) -> None:
+        """Persist the computed ROI to a JSON file for use by GameInstance."""
+        os.makedirs(os.path.dirname(_ROI_OUTPUT_PATH), exist_ok=True)
+        with open(_ROI_OUTPUT_PATH, "w") as f:
+            json.dump(roi, f, indent=2)
+        print(f"[Analyzer] ROI saved to: {_ROI_OUTPUT_PATH}")
