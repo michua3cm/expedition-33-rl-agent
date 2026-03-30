@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -25,6 +26,52 @@ class GameState:
     timestamp: float
     engine_name: str
     frame: Optional[np.ndarray] = field(default=None, repr=False)  # opt-in raw frame
+
+
+def _iou(a: Detection, b: Detection) -> float:
+    """Intersection-over-Union for two axis-aligned bounding boxes."""
+    ix1 = max(a.x, b.x)
+    iy1 = max(a.y, b.y)
+    ix2 = min(a.x + a.w, b.x + b.w)
+    iy2 = min(a.y + a.h, b.y + b.h)
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+    inter = (ix2 - ix1) * (iy2 - iy1)
+    union = a.w * a.h + b.w * b.h - inter
+    return inter / union if union > 0 else 0.0
+
+
+def nms(detections: list[Detection], iou_threshold: float = 0.3) -> list[Detection]:
+    """
+    Greedy Non-Maximum Suppression.
+
+    Detections of *different* labels never suppress each other.  Within each
+    label group, boxes are sorted by confidence (descending) and any box that
+    overlaps an already-kept box by more than ``iou_threshold`` is discarded.
+
+    Args:
+        detections:    Raw detection list, possibly with many overlapping boxes.
+        iou_threshold: Overlap fraction above which a lower-confidence box is
+                       suppressed.  0.3 works well for rigid template matches.
+
+    Returns:
+        Filtered list with at most one box per cluster per label.
+    """
+    if len(detections) <= 1:
+        return detections
+
+    groups: dict[str, list[Detection]] = defaultdict(list)
+    for d in detections:
+        groups[d.label].append(d)
+
+    kept: list[Detection] = []
+    for group in groups.values():
+        remaining = sorted(group, key=lambda d: d.confidence, reverse=True)
+        while remaining:
+            best = remaining.pop(0)
+            kept.append(best)
+            remaining = [d for d in remaining if _iou(best, d) < iou_threshold]
+    return kept
 
 
 class VisionEngine(ABC):
