@@ -2,31 +2,35 @@ import tkinter as tk
 import win32gui # type: ignore
 import win32con # type: ignore
 
+# Re-assert HWND_TOPMOST every N milliseconds to prevent other windows
+# (VS Code, video players, etc.) from covering the overlay.
+_TOPMOST_INTERVAL_MS = 1000
+
 class OverlayWindow:
     def __init__(self):
         self.root = tk.Tk()
-        
+
         # Window setup: Title, Fullscreen, Borderless
         self.root.title("AI_Vision_Overlay")
         self.screen_w = self.root.winfo_screenwidth()
         self.screen_h = self.root.winfo_screenheight()
         self.root.geometry(f"{self.screen_w}x{self.screen_h}+0+0")
         self.root.overrideredirect(True)
-        
+
         # Topmost (Always on top)
         self.root.attributes("-topmost", True)
-        
+
         # Transparency Setup (Chroma Key method)
         # We set background to black, and tell Windows that "black is transparent"
         self.bg_color = "black"
         self.root.config(bg=self.bg_color)
         self.root.attributes("-transparentcolor", self.bg_color)
-        
+
         # Canvas Setup
-        self.canvas = tk.Canvas(self.root, width=self.screen_w, height=self.screen_h, 
+        self.canvas = tk.Canvas(self.root, width=self.screen_w, height=self.screen_h,
                                 bg=self.bg_color, highlightthickness=0)
         self.canvas.pack()
-        
+
         # Enable Click-through (via Windows API)
         # We use .after() to ensure window is fully created before applying styles
         self.root.after(10, self.set_click_through)
@@ -39,8 +43,20 @@ class OverlayWindow:
             ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
             # Add Layered and Transparent styles
             # WS_EX_TRANSPARENT makes mouse clicks pass through the window
-            win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, 
+            win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE,
                                    ex_style | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT)
+            # SetWindowLong can silently reset the Z-order, so explicitly
+            # re-assert HWND_TOPMOST after changing extended styles.
+            # SWP_NOACTIVATE prevents the overlay from stealing keyboard focus.
+            win32gui.SetWindowPos(
+                hwnd,
+                win32con.HWND_TOPMOST,
+                0, 0, 0, 0,
+                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE,
+            )
+        # Keep re-asserting topmost periodically so apps that temporarily
+        # steal Z-order (video players, IDEs, etc.) don't cover the overlay.
+        self.root.after(_TOPMOST_INTERVAL_MS, self.set_click_through)
 
     def draw_box(self, x, y, w, h, color, label):
         """Draws a bounding box and a label on the overlay."""
