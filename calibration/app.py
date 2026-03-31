@@ -34,7 +34,7 @@ class CalibrationApp:
         raw = self.sct.monitors[MONITOR_INDEX]
         w, h = raw["width"], raw["height"]
         margin_w = int(w * 0.0)
-        margin_h = int(h * 0.2)
+        margin_h = int(h * 0.0)
         return {
             "top": raw["top"] + margin_h,
             "left": raw["left"] + margin_w,
