@@ -73,6 +73,19 @@ def nms(detections: list[Detection], iou_threshold: float = 0.3) -> list[Detecti
     return kept
 
 
+# HSV hue ranges (OpenCV scale: 0–180) shared across engines for color
+# masking and validation.  Red wraps around 0, so it has two ranges.
+# Gold/amber (JUMP_CUE icon, TURN_ALLY border): standard ~27–62°, OpenCV 13–31.
+HUE_RANGES: dict[str, list[tuple[int, int]]] = {
+    "red":    [(0, 10), (170, 180)],
+    "blue":   [(100, 130)],
+    "green":  [(40, 80)],
+    "yellow": [(20, 35)],
+    "gold":   [(12, 32)],
+    "purple": [(130, 160)],
+}
+
+
 class VisionEngine(ABC):
     """
     Abstract base for all vision engines (PIXEL, SIFT, ORB, YOLO, …).

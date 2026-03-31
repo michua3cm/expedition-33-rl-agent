@@ -5,7 +5,7 @@ import os
 import cv2
 import numpy as np
 
-from ..engine import Detection, VisionEngine
+from ..engine import HUE_RANGES, Detection, VisionEngine
 from ..registry import register
 
 _DEFAULT_MIN_MATCHES = 12
@@ -48,11 +48,29 @@ class ORBEngine(VisionEngine):
             if not os.path.exists(path):
                 print(f"[ORBEngine] Warning: '{file_name}' not found, skipping '{label}'.")
                 continue
-            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                print(f"[ORBEngine] Error: failed to load '{file_name}'.")
-                continue
-            kp, des = self._orb.detectAndCompute(img, None)
+            # Build a color mask when requested so that keypoints are only
+            # detected on the colored icon pixels, not in hollow background
+            # regions (mirrors the same fix in SIFTEngine).
+            hue_ranges = HUE_RANGES.get(cfg.get("color", "")) if cfg.get("color_mask") else None
+            if hue_ranges is not None:
+                img_bgr = cv2.imread(path, cv2.IMREAD_COLOR)
+                if img_bgr is None:
+                    print(f"[ORBEngine] Error: failed to load '{file_name}'.")
+                    continue
+                img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+                hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+                mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
+                for lo, hi in hue_ranges:
+                    mask |= cv2.inRange(hsv, (lo, 40, 40), (hi, 255, 255))
+                mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=1)
+            else:
+                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+                if img is None:
+                    print(f"[ORBEngine] Error: failed to load '{file_name}'.")
+                    continue
+                mask = None
+
+            kp, des = self._orb.detectAndCompute(img, mask)
             if des is None:
                 print(f"[ORBEngine] Warning: no keypoints found in '{cfg['file']}', skipping '{label}'.")
                 continue
