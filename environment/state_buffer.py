@@ -71,7 +71,8 @@ class StateBuffer:
     def stop(self) -> None:
         """Signal the capture thread to stop and wait for it to exit."""
         self._stop_event.set()
-        self._thread.join(timeout=2.0)
+        if self._thread.is_alive():
+            self._thread.join(timeout=2.0)
 
     # ------------------------------------------------------------------
     # State access

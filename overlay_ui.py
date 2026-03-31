@@ -1,8 +1,5 @@
 import tkinter as tk
 
-import win32con  # type: ignore
-import win32gui  # type: ignore
-
 # Re-assert HWND_TOPMOST every N milliseconds to prevent other windows
 # (VS Code, video players, etc.) from covering the overlay.
 _TOPMOST_INTERVAL_MS = 1000
@@ -37,6 +34,8 @@ class OverlayWindow:
         self.root.after(10, self.set_click_through)
 
     def set_click_through(self):
+        import win32con  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
+        import win32gui  # type: ignore
         # Get window handle (HWND)
         hwnd = win32gui.FindWindow(None, "AI_Vision_Overlay")
         if hwnd:

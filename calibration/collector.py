@@ -3,7 +3,6 @@ import time
 import cv2
 import mss
 import numpy as np
-import win32api  # type: ignore
 
 from overlay_ui import OverlayWindow
 
@@ -56,6 +55,7 @@ class ScreenshotCollector:
         return filename
 
     def _handle_input(self):
+        import win32api  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
         if win32api.GetAsyncKeyState(VK_CAPTURE) & 0x8000:
             self._save_screenshot()
             time.sleep(0.3)  # debounce

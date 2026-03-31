@@ -7,9 +7,9 @@
 #
 # Why ubuntu-latest?
 #   pywin32 is Windows-only and is declared with a sys_platform guard in
-#   pyproject.toml, so it is skipped on Linux.  All tests mock the Windows
-#   API layer (overlay_ui / win32gui) and never import it directly, so the
-#   full suite runs cleanly on a Linux runner.
+#   pyproject.toml, so it is skipped on Linux.  win32api is lazy-imported
+#   inside CalibrationApp._handle_input() so the module loads on Linux.
+#   pynput requires an X server; xvfb-run provides a virtual display.
 
 name: CI
 
@@ -58,8 +58,11 @@ jobs:
       - name: Set up Python 3.13
         run: uv python install 3.13
 
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
       - name: Install dependencies
         run: uv sync --all-groups
 
       - name: Run pytest
-        run: uv run pytest
+        run: xvfb-run uv run pytest

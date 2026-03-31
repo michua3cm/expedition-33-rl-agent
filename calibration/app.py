@@ -3,7 +3,6 @@ import time
 import cv2
 import mss
 import numpy as np
-import win32api  # type: ignore
 
 import vision
 from overlay_ui import OverlayWindow
@@ -46,6 +45,7 @@ class CalibrationApp:
 
     def _handle_input(self):
         """Check keyboard input for state changes."""
+        import win32api  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
         if win32api.GetAsyncKeyState(VK_START) & 0x8000:
             if not self.logger.get_record_status():
                 self.logger.start_recording()

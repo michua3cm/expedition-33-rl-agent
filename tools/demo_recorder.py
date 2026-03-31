@@ -205,7 +205,7 @@ class DemoRecorder:
     # ------------------------------------------------------------------
 
     def _capture_loop(self) -> None:
-        while not self._stop_event.is_set():
+        while True:
             tick_start = time.perf_counter()
 
             try:
@@ -222,6 +222,9 @@ class DemoRecorder:
 
             except Exception as exc:  # noqa: BLE001
                 print(f"[DemoRecorder] Capture error: {exc}")
+
+            if self._stop_event.is_set():
+                break
 
             elapsed = time.perf_counter() - tick_start
             sleep_time = self._interval - elapsed
