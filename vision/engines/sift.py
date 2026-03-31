@@ -56,7 +56,7 @@ class SIFTEngine(VisionEngine):
                 hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
                 mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
                 for lo, hi in hue_ranges:
-                    mask |= cv2.inRange(hsv, (lo, 40, 40), (hi, 255, 255))
+                    mask |= cv2.inRange(hsv, (lo, 100, 200), (hi, 255, 255))
                 # Dilate one pixel so keypoints on color edges are included.
                 mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=1)
             else:

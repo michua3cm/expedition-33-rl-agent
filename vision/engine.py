@@ -81,7 +81,7 @@ HUE_RANGES: dict[str, list[tuple[int, int]]] = {
     "blue":   [(100, 130)],
     "green":  [(40, 80)],
     "yellow": [(20, 35)],
-    "gold":   [(12, 32)],
+    "gold":   [(15, 35)],
     "purple": [(130, 160)],
 }
 
