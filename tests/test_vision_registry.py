@@ -5,12 +5,12 @@ Each test uses its own isolated registry copy to avoid polluting the
 global _REGISTRY used by the real engines.
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 import vision.registry as reg
 from vision.engine import VisionEngine
-
 
 # ---------------------------------------------------------------------------
 # Helpers

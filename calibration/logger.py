@@ -1,13 +1,15 @@
 import csv
 import os
 from datetime import datetime
+
 from .config import LOG_DIR
+
 
 class CalibrationLogger:
     def __init__(self):
         self._recording = False
         self.points = []
-    
+
     def get_record_status(self):
         return self._recording
 

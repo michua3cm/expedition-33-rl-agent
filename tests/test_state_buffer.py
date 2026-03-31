@@ -11,11 +11,8 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
-import pytest
-
-from vision.engine import GameState, Detection
 from environment.state_buffer import StateBuffer
-
+from vision.engine import GameState
 
 # ---------------------------------------------------------------------------
 # Helpers

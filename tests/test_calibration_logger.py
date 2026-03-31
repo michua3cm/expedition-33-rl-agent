@@ -4,8 +4,7 @@ Unit tests for calibration/logger.py — CalibrationLogger.
 File I/O is fully mocked — no CSV files are written to disk.
 """
 
-import pytest
-from unittest.mock import patch, mock_open, MagicMock, call
+from unittest.mock import patch
 
 from calibration.logger import CalibrationLogger
 

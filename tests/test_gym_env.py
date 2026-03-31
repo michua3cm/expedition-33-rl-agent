@@ -7,21 +7,20 @@ real vision engine is involved in any test.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-from vision.engine import Detection, GameState
 from environment import actions as A
 from environment.gym_env import (
-    Expedition33Env,
+    OBS_DIM,
     OBSERVATION_TARGETS,
     REWARD_MAP,
     STEP_PENALTY,
-    OBS_DIM,
+    Expedition33Env,
 )
-
+from vision.engine import Detection, GameState
 
 # ---------------------------------------------------------------------------
 # Helpers

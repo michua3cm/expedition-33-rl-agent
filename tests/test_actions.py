@@ -2,10 +2,17 @@
 Unit tests for environment/actions.py.
 """
 
-import pytest
 from environment.actions import (
-    NOOP, PARRY, DODGE, JUMP, GRADIENT_PARRY, ATTACK, JUMP_ATTACK,
-    NUM_ACTIONS, ACTION_NAMES, ACTION_INDEX,
+    ACTION_INDEX,
+    ACTION_NAMES,
+    ATTACK,
+    DODGE,
+    GRADIENT_PARRY,
+    JUMP,
+    JUMP_ATTACK,
+    NOOP,
+    NUM_ACTIONS,
+    PARRY,
 )
 
 

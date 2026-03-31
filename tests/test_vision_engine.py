@@ -3,7 +3,6 @@ Unit tests for vision/engine.py — Detection and GameState dataclasses.
 """
 
 import numpy as np
-import pytest
 
 from vision.engine import Detection, GameState
 

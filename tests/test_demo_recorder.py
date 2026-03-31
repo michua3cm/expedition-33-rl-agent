@@ -8,19 +8,23 @@ used in any test.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch, call
-from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-
 from pynput import keyboard, mouse
-from vision.engine import Detection, GameState
-from environment.actions import (
-    NOOP, PARRY, DODGE, JUMP, GRADIENT_PARRY, ATTACK, JUMP_ATTACK,
-)
-from tools.demo_recorder import DemoRecorder, OBSERVATION_TARGETS
 
+from environment.actions import (
+    ATTACK,
+    DODGE,
+    GRADIENT_PARRY,
+    JUMP,
+    JUMP_ATTACK,
+    NOOP,
+    PARRY,
+)
+from tools.demo_recorder import OBSERVATION_TARGETS, DemoRecorder
+from vision.engine import Detection, GameState
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -1,6 +1,7 @@
 import tkinter as tk
-import win32gui # type: ignore
-import win32con # type: ignore
+
+import win32con  # type: ignore
+import win32gui  # type: ignore
 
 # Re-assert HWND_TOPMOST every N milliseconds to prevent other windows
 # (VS Code, video players, etc.) from covering the overlay.

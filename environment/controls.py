@@ -1,8 +1,9 @@
 import ctypes
 import time
 from ctypes import wintypes
-import win32con
+
 import win32api
+import win32con
 
 # --- Low-Level Windows Structs for DirectInput ---
 user32 = ctypes.windll.user32

@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -25,7 +24,7 @@ class GameState:
     detections: list[Detection]
     timestamp: float
     engine_name: str
-    frame: Optional[np.ndarray] = field(default=None, repr=False)  # opt-in raw frame
+    frame: np.ndarray | None = field(default=None, repr=False)  # opt-in raw frame
 
 
 def _iou(a: Detection, b: Detection) -> float:

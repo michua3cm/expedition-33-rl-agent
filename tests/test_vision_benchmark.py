@@ -9,8 +9,7 @@ inference is performed in any test.
 from __future__ import annotations
 
 import csv
-import io
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -26,7 +25,6 @@ from tools.vision_benchmark import (
     run_live_stress_test,
 )
 from vision.engine import Detection
-
 
 # ---------------------------------------------------------------------------
 # Helpers
