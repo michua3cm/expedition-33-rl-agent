@@ -21,9 +21,9 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Optional
 
 import vision
+
 from .instance import GameInstance
 
 
@@ -48,7 +48,7 @@ class StateBuffer:
         self._interval = 1.0 / max(poll_hz, 1.0)
         self._include_frame = include_frame
 
-        self._state: Optional[vision.GameState] = None
+        self._state: vision.GameState | None = None
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         self._ready_event = threading.Event()  # set once first frame is captured
@@ -71,13 +71,14 @@ class StateBuffer:
     def stop(self) -> None:
         """Signal the capture thread to stop and wait for it to exit."""
         self._stop_event.set()
-        self._thread.join(timeout=2.0)
+        if self._thread.is_alive():
+            self._thread.join(timeout=2.0)
 
     # ------------------------------------------------------------------
     # State access
     # ------------------------------------------------------------------
 
-    def latest(self) -> Optional[vision.GameState]:
+    def latest(self) -> vision.GameState | None:
         """
         Return the most recent GameState without blocking.
 
@@ -86,7 +87,7 @@ class StateBuffer:
         with self._lock:
             return self._state
 
-    def wait_for_state(self, timeout: float = 5.0) -> Optional[vision.GameState]:
+    def wait_for_state(self, timeout: float = 5.0) -> vision.GameState | None:
         """
         Block until the first frame is ready, then return the latest state.
 

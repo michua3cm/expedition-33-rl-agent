@@ -30,8 +30,8 @@ from collections import defaultdict
 
 import cv2
 
-from calibration.config import TARGETS, ASSETS_DIR
 import vision
+from calibration.config import ASSETS_DIR, TARGETS
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 DATASET_DIR  = os.path.join("data", "yolo_dataset")
@@ -177,7 +177,7 @@ def run(val_split: float = 0.2, include_negatives: bool = True) -> None:
 
     _write_dataset_yaml()
 
-    print(f"[AutoLabel] Complete.")
+    print("[AutoLabel] Complete.")
     print(f"  Labeled images : {total_labeled}")
     print(f"  Negative images: {total_negative}")
     print(f"  Train / Val    : {len(split_map['train'])} / {len(split_map['val'])}")

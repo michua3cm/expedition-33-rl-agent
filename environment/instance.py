@@ -1,11 +1,13 @@
-import mss
-import cv2
-import numpy as np
 import time
 
-from .controls import GameController
-from calibration.config import TARGETS, MONITOR_INDEX, ASSETS_DIR
+import cv2
+import mss
+import numpy as np
+
 import vision
+from calibration.config import ASSETS_DIR, MONITOR_INDEX, TARGETS
+
+from .controls import GameController
 
 
 class GameInstance:

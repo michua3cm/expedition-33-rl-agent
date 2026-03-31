@@ -68,15 +68,13 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import mss
 import numpy as np
 
 import vision
-from calibration.config import TARGETS, ASSETS_DIR, SCREENSHOT_DIR, MONITOR_INDEX
-
+from calibration.config import ASSETS_DIR, MONITOR_INDEX, SCREENSHOT_DIR, TARGETS
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -123,7 +121,7 @@ class EngineResult:
 # Core benchmark runner
 # ---------------------------------------------------------------------------
 
-def _load_images(img_dir: str, limit: Optional[int]) -> list[np.ndarray]:
+def _load_images(img_dir: str, limit: int | None) -> list[np.ndarray]:
     """Load greyscale frames from a directory (PNG and JPG)."""
     paths = sorted(
         p for p in Path(img_dir).iterdir()
@@ -200,7 +198,7 @@ def _print_report(results: list[EngineResult]) -> None:
     print("=" * 72)
 
     col_w = 14
-    header_labels = "".join(f"{l:>{col_w}}" for l in labels)
+    header_labels = "".join(f"{lbl:>{col_w}}" for lbl in labels)
     print(f"{'Engine':<10}{header_labels}")
     print("-" * (10 + col_w * len(labels)))
 
@@ -248,9 +246,9 @@ def _save_csv(results: list[EngineResult], csv_path: str) -> None:
 
         # Header
         base_cols = ["engine", "frames", "fps", "mean_ms", "median_ms", "p95_ms", "max_ms"]
-        det_cols  = [f"det_{l}" for l in labels]
-        rate_cols = [f"rate_{l}" for l in labels]
-        conf_cols = [f"conf_{l}" for l in labels]
+        det_cols  = [f"det_{lbl}" for lbl in labels]
+        rate_cols = [f"rate_{lbl}" for lbl in labels]
+        conf_cols = [f"conf_{lbl}" for lbl in labels]
         writer.writerow(base_cols + det_cols + rate_cols + conf_cols)
 
         for r in results:
@@ -259,16 +257,16 @@ def _save_csv(results: list[EngineResult], csv_path: str) -> None:
                 f"{r.fps:.2f}", f"{r.mean_ms:.3f}",
                 f"{r.median_ms:.3f}", f"{r.p95_ms:.3f}", f"{r.max_ms:.3f}",
             ]
-            dets  = [r.detection_counts.get(l, 0) for l in labels]
+            dets  = [r.detection_counts.get(lbl, 0) for lbl in labels]
             rates = [
-                f"{r.detection_counts.get(l, 0) / r.frame_count:.4f}"
+                f"{r.detection_counts.get(lbl, 0) / r.frame_count:.4f}"
                 if r.frame_count else "0"
-                for l in labels
+                for lbl in labels
             ]
             confs = [
-                f"{r.confidence_sums[l] / r.detection_counts[l]:.4f}"
-                if r.detection_counts.get(l, 0) else ""
-                for l in labels
+                f"{r.confidence_sums[lbl] / r.detection_counts[lbl]:.4f}"
+                if r.detection_counts.get(lbl, 0) else ""
+                for lbl in labels
             ]
             writer.writerow(base + dets + rates + confs)
 

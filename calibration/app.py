@@ -1,13 +1,14 @@
-import mss
-import cv2
 import time
-import numpy as np
-import win32api  # type: ignore
 
-from .config import TARGETS, MONITOR_INDEX, SCREENSHOT_DIR, ASSETS_DIR
-from .logger import CalibrationLogger
-from overlay_ui import OverlayWindow
+import cv2
+import mss
+import numpy as np
+
 import vision
+from overlay_ui import OverlayWindow
+
+from .config import ASSETS_DIR, MONITOR_INDEX, SCREENSHOT_DIR, TARGETS
+from .logger import CalibrationLogger
 
 # Key Codes
 VK_START = 0x78  # F9
@@ -44,6 +45,7 @@ class CalibrationApp:
 
     def _handle_input(self):
         """Check keyboard input for state changes."""
+        import win32api  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
         if win32api.GetAsyncKeyState(VK_START) & 0x8000:
             if not self.logger.get_record_status():
                 self.logger.start_recording()

@@ -1,11 +1,6 @@
 import ctypes
 import time
 from ctypes import wintypes
-import win32con
-import win32api
-
-# --- Low-Level Windows Structs for DirectInput ---
-user32 = ctypes.windll.user32
 
 # DirectInput Scan Codes (Hardware Mapping)
 # These are universal for almost all PC games.
@@ -44,18 +39,19 @@ class KEYBDINPUT(ctypes.Structure):
 class MOUSEINPUT(ctypes.Structure):
     _fields_ = [("dx", ctypes.c_long),
                 ("dy", ctypes.c_long),
-                ("mouseData", ctypes.DWORD),
-                ("dwFlags", ctypes.DWORD),
-                ("time", ctypes.DWORD),
+                ("mouseData", wintypes.DWORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
                 ("dwExtraInfo", ctypes.c_ulong)]
 
 class INPUT(ctypes.Structure):
-    _fields_ = [("type", ctypes.DWORD),
+    _fields_ = [("type", wintypes.DWORD),
                 ("ki", KEYBDINPUT), # Key Input
                 ("mi", MOUSEINPUT), # Mouse Input
                 ("hi", ctypes.c_void_p)] # Hardware Input
 
 def _send_input(input_struct):
+    user32 = ctypes.windll.user32  # Windows-only; accessed lazily inside function
     user32.SendInput(1, ctypes.byref(input_struct), ctypes.sizeof(input_struct))
 
 class GameController:
@@ -102,6 +98,8 @@ class GameController:
         """
         Atomic Action: Click mouse button.
         """
+        import win32api  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
+        import win32con  # type: ignore
         if button == "left":
             down_flag = win32con.MOUSEEVENTF_LEFTDOWN
             up_flag = win32con.MOUSEEVENTF_LEFTUP

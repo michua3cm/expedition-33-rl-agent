@@ -53,17 +53,21 @@ import argparse
 import os
 import threading
 import time
-from typing import Optional
 
 import numpy as np
 from pynput import keyboard, mouse
 
+from calibration.config import DEMO_DIR
 from environment.actions import (
-    NOOP, PARRY, DODGE, JUMP, GRADIENT_PARRY, ATTACK, JUMP_ATTACK,
-    ACTION_NAMES,
+    ATTACK,
+    DODGE,
+    GRADIENT_PARRY,
+    JUMP,
+    JUMP_ATTACK,
+    NOOP,
+    PARRY,
 )
 from environment.instance import GameInstance
-from calibration.config import DEMO_DIR, ASSETS_DIR, TARGETS
 
 # Vision targets — must match the gym env's OBSERVATION_TARGETS order
 OBSERVATION_TARGETS = [
@@ -147,7 +151,7 @@ class DemoRecorder:
         self._mouse_listener.start()
         self._capture_thread.start()
 
-    def stop(self) -> Optional[str]:
+    def stop(self) -> str | None:
         """
         Stop recording, save the trajectory, and return the save path.
 
@@ -178,7 +182,7 @@ class DemoRecorder:
         except AttributeError:
             char = None
 
-        action: Optional[int] = None
+        action: int | None = None
 
         if char and char in _KEY_MAP:
             action = _KEY_MAP[char]
@@ -201,7 +205,7 @@ class DemoRecorder:
     # ------------------------------------------------------------------
 
     def _capture_loop(self) -> None:
-        while not self._stop_event.is_set():
+        while True:
             tick_start = time.perf_counter()
 
             try:
@@ -218,6 +222,9 @@ class DemoRecorder:
 
             except Exception as exc:  # noqa: BLE001
                 print(f"[DemoRecorder] Capture error: {exc}")
+
+            if self._stop_event.is_set():
+                break
 
             elapsed = time.perf_counter() - tick_start
             sleep_time = self._interval - elapsed
@@ -254,7 +261,7 @@ class DemoRecorder:
     # Persistence
     # ------------------------------------------------------------------
 
-    def _save(self) -> Optional[str]:
+    def _save(self) -> str | None:
         if not self._ts_buf:
             print("[DemoRecorder] No frames recorded — nothing saved.")
             return None

@@ -30,7 +30,7 @@ def run(epochs: int = 100, imgsz: int = 640, base_model: str = DEFAULT_MODEL) ->
 
     from ultralytics import YOLO  # deferred import — only needed when training
 
-    print(f"[Train] Starting YOLO training...")
+    print("[Train] Starting YOLO training...")
     print(f"  Base model : {base_model}")
     print(f"  Dataset    : {DATASET_YAML}")
     print(f"  Epochs     : {epochs}")

@@ -1,6 +1,6 @@
+from .analysis.entry import run_analysis as run_analysis
 from .app import CalibrationApp
 from .collector import ScreenshotCollector
-from .analysis.entry import run_analysis
 
 
 def run_recorder(engine="PIXEL"):

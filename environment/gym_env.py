@@ -25,14 +25,12 @@ from __future__ import annotations
 import time
 from typing import Any
 
-import numpy as np
 import gymnasium as gym
+import numpy as np
 from gymnasium import spaces
 
 from . import actions as A
 from .instance import GameInstance
-from calibration.config import TARGETS
-
 
 # Vision targets in a fixed, stable order for the observation vector.
 OBSERVATION_TARGETS = [

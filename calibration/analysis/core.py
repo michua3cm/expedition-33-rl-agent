@@ -1,6 +1,6 @@
+import glob
 import json
 import os
-import glob
 
 import mss
 import numpy as np

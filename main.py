@@ -1,6 +1,7 @@
 import argparse
 import sys
-from calibration import run_recorder, run_collector, run_analysis
+
+from calibration import run_analysis, run_collector, run_recorder
 
 
 def main():
