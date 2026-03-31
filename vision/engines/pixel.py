@@ -5,6 +5,7 @@ import os
 import cv2
 import numpy as np
 
+from ..engine import HUE_RANGES as _HUE_RANGES
 from ..engine import Detection, VisionEngine, nms
 from ..registry import register
 
@@ -14,18 +15,6 @@ _DEFAULT_THRESHOLD = 0.6
 _KIND_GREY    = "grey"     # greyscale template matching (default)
 _KIND_COLOR   = "color"    # BGR template matching (color_mode: True)
 _KIND_HSV_SAT = "hsv_sat"  # frame-wide saturation drop (no template file)
-
-# HSV hue ranges (OpenCV scale: 0–180) used to validate color-mode detections.
-# Red wraps around 0, so it has two ranges.
-# Gold/amber (e.g. TURN_ALLY border): standard ~27–62°, OpenCV 13–31.
-_HUE_RANGES: dict[str, list[tuple[int, int]]] = {
-    "red":    [(0, 10), (170, 180)],
-    "blue":   [(100, 130)],
-    "green":  [(40, 80)],
-    "yellow": [(20, 35)],
-    "gold":   [(12, 32)],
-    "purple": [(130, 160)],
-}
 
 
 @register("PIXEL")

@@ -89,6 +89,7 @@ TARGETS = {
         # full design rationale.
         "file": "template_jump_cue.png",
         "color": "gold",
+        "color_mask": True,
         "threshold": 0.70,
         "min_matches": 10,
         "engine": "SIFT",
