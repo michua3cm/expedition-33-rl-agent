@@ -86,6 +86,32 @@ HUE_RANGES: dict[str, list[tuple[int, int]]] = {
 }
 
 
+def apply_roi(
+    frame: np.ndarray,
+    roi: tuple[float, float, float, float] | None,
+) -> tuple[np.ndarray, int, int]:
+    """Crop *frame* to a fractional ROI region.
+
+    Args:
+        frame: Input frame — greyscale (H×W) or BGR (H×W×3).
+        roi:   ``(x_frac, y_frac, w_frac, h_frac)`` as fractions of the frame
+               dimensions.  ``None`` skips cropping and returns the frame as-is.
+
+    Returns:
+        ``(cropped_frame, offset_x, offset_y)`` — the sub-frame and the pixel
+        offset that must be added back to any Detection coordinates produced
+        from the cropped frame so they are relative to the original full frame.
+    """
+    if roi is None:
+        return frame, 0, 0
+    h, w = frame.shape[:2]
+    x = int(roi[0] * w)
+    y = int(roi[1] * h)
+    rw = max(1, int(roi[2] * w))
+    rh = max(1, int(roi[3] * h))
+    return frame[y:y + rh, x:x + rw], x, y
+
+
 class VisionEngine(ABC):
     """
     Abstract base for all vision engines (PIXEL, SIFT, ORB, YOLO, …).

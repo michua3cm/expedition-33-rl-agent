@@ -40,20 +40,27 @@ TARGETS = {
     # Reward Signals                                                       #
     # Text that appears on screen confirming a successful action.          #
     # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------ #
+    # ROI tuning note                                                      #
+    # roi: (x_frac, y_frac, w_frac, h_frac) — fractions of the full frame #
+    # These are initial estimates. Adjust after observing live detections. #
+    # ------------------------------------------------------------------ #
     "PERFECT": {
         # Reward +10: perfect dodge achieved (tight timing window).
         # Used to train parry timing — PERFECT dodge window ≈ parry window.
         "file": "template_perfect.png",
         "color": "lime",
         "threshold": 0.65,
-        "min_matches": 10
+        "min_matches": 10,
+        "roi": (0.20, 0.20, 0.60, 0.55),  # centre flash text
     },
     "DODGE": {
         # Reward +5: successful dodge (any timing).
         "file": "template_dodge.png",
         "color": "yellow",
         "threshold": 0.65,
-        "min_matches": 10
+        "min_matches": 10,
+        "roi": (0.20, 0.20, 0.60, 0.55),
     },
     "JUMP": {
         # Reward +5: text confirming a successful jump.
@@ -61,7 +68,8 @@ TARGETS = {
         "file": "template_jump.png",
         "color": "magenta",
         "threshold": 0.75,
-        "min_matches": 15
+        "min_matches": 15,
+        "roi": (0.20, 0.20, 0.60, 0.55),
     },
     "PARRIED": {
         # Reward +8: text confirming a successful gradient attack parry.
@@ -69,7 +77,8 @@ TARGETS = {
         "file": "template_parried.png",
         "color": "cyan",
         "threshold": 0.65,
-        "min_matches": 10
+        "min_matches": 10,
+        "roi": (0.20, 0.20, 0.60, 0.55),
     },
 
     # ------------------------------------------------------------------ #
@@ -94,6 +103,7 @@ TARGETS = {
         "min_matches": 10,
         "engine": "SIFT",
         "autolabel_engine": "SIFT",
+        "roi": (0.15, 0.10, 0.70, 0.80),  # large centre region — icon size varies
     },
     "MOUSE": {
         # Action cue: mouse cursor icon — appears after a successful jump,
@@ -101,7 +111,8 @@ TARGETS = {
         "file": "template_mouse.png",
         "color": "orange",
         "threshold": 0.90,
-        "min_matches": 10
+        "min_matches": 10,
+        "roi": (0.25, 0.25, 0.50, 0.50),  # centre
     },
 
     # ------------------------------------------------------------------ #
@@ -120,6 +131,7 @@ TARGETS = {
         "min_matches": 12,
         "engine": "SIFT",
         "autolabel_engine": "SIFT",
+        "roi": (0.20, 0.15, 0.60, 0.70),  # centre menu
     },
     "TURN_ALLY": {
         # Phase signal: the top (active) card in the turn order UI has a gold
@@ -131,7 +143,8 @@ TARGETS = {
         "color": "gold",
         "color_mode": True,
         "threshold": 0.75,
-        "min_matches": 12
+        "min_matches": 12,
+        "roi": (0.00, 0.00, 0.20, 0.35),  # top-left turn order UI
     },
     "TURN_ENEMY": {
         # Phase signal: the top (active) card in the turn order UI has red
@@ -142,7 +155,8 @@ TARGETS = {
         "color": "red",
         "color_mode": True,
         "threshold": 0.75,
-        "min_matches": 12
+        "min_matches": 12,
+        "roi": (0.00, 0.00, 0.20, 0.35),  # top-left turn order UI
     },
     "GRADIENT_INCOMING": {
         # Phase signal: grey screen overlay — enemy is launching a gradient
