@@ -63,6 +63,23 @@ class OverlayWindow:
         self.canvas.create_rectangle(x, y, x+w, y+h, outline=color, width=3)
         self.canvas.create_text(x, y-22, text=label, fill=color, font=("Arial", 14), anchor="nw")
 
+    def draw_roi_rect(self, x: int, y: int, w: int, h: int, color: str, label: str) -> None:
+        """Draws a dashed ROI boundary rectangle with a small label.
+
+        Visually distinct from detection boxes (draw_box uses solid width-3
+        lines; ROI rects use dashed width-1 lines) so the two are never
+        confused at a glance.
+        """
+        self.canvas.create_rectangle(
+            x, y, x + w, y + h,
+            outline=color, width=1, dash=(6, 4),
+        )
+        self.canvas.create_text(
+            x + 4, y + 4,
+            text=f"[{label}]", fill=color,
+            font=("Arial", 9), anchor="nw",
+        )
+
     def draw_status(self, text, color="white"):
         """Displays the current program state in the top-left corner."""
         self.canvas.create_text(20, 20, text=text, fill=color, font=("Arial", 16, "bold"), anchor="nw")

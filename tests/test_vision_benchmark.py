@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from calibration.config import MONITOR_INDEX
 from tools.vision_benchmark import (
     EngineResult,
     LiveStressResult,
@@ -331,7 +332,10 @@ class TestRunLiveStressTest:
         mock_sct = MagicMock()
         mock_sct.__enter__.return_value = mock_sct
         mock_sct.__exit__.return_value = False
-        mock_sct.monitors = [None, {"top": 0, "left": 0, "width": 64, "height": 64}]
+        monitor_entry = {"top": 0, "left": 0, "width": 64, "height": 64}
+        # Extend the list to cover whatever MONITOR_INDEX is configured to,
+        # so tests never break when the index is changed in config.py.
+        mock_sct.monitors = [None] + [monitor_entry] * max(MONITOR_INDEX, 1)
         mock_sct.grab.return_value = fake_bgra
         return mock_sct
 

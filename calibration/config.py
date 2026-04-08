@@ -21,7 +21,7 @@ DEFAULT_MIN_MATCHES = 12
 # 0: All monitors
 # 1: monitor 1
 # 2: monitor 2 ... and so on
-MONITOR_INDEX = 0
+MONITOR_INDEX = 3
 
 # --- TARGETS DEFINITION ---
 #
@@ -52,7 +52,7 @@ TARGETS = {
         "color": "lime",
         "threshold": 0.65,
         "min_matches": 10,
-        "roi": (0.20, 0.20, 0.60, 0.55),  # centre flash text
+        "roi": (0.10, 0.30, 0.80, 0.50),  # centre flash text
     },
     "DODGE": {
         # Reward +5: successful dodge (any timing).
@@ -60,7 +60,7 @@ TARGETS = {
         "color": "yellow",
         "threshold": 0.65,
         "min_matches": 10,
-        "roi": (0.20, 0.20, 0.60, 0.55),
+        "roi": (0.10, 0.30, 0.80, 0.50),
     },
     "JUMP": {
         # Reward +5: text confirming a successful jump.
@@ -69,7 +69,7 @@ TARGETS = {
         "color": "magenta",
         "threshold": 0.75,
         "min_matches": 15,
-        "roi": (0.20, 0.20, 0.60, 0.55),
+        "roi": (0.10, 0.30, 0.80, 0.50),
     },
     "PARRIED": {
         # Reward +8: text confirming a successful gradient attack parry.
@@ -78,7 +78,7 @@ TARGETS = {
         "color": "cyan",
         "threshold": 0.65,
         "min_matches": 10,
-        "roi": (0.20, 0.20, 0.60, 0.55),
+        "roi": (0.10, 0.30, 0.80, 0.50),
     },
 
     # ------------------------------------------------------------------ #
@@ -103,7 +103,7 @@ TARGETS = {
         "min_matches": 10,
         "engine": "SIFT",
         "autolabel_engine": "SIFT",
-        "roi": (0.15, 0.10, 0.70, 0.80),  # large centre region — icon size varies
+        "roi": (0.15, 0.15, 0.70, 0.50),  # large centre region — icon size varies
     },
     "MOUSE": {
         # Action cue: mouse cursor icon — appears after a successful jump,
@@ -131,7 +131,7 @@ TARGETS = {
         "min_matches": 12,
         "engine": "SIFT",
         "autolabel_engine": "SIFT",
-        "roi": (0.20, 0.15, 0.60, 0.70),  # centre menu
+        "roi": (0.30, 0.40, 0.30, 0.45),  # centre menu
     },
     "TURN_ALLY": {
         # Phase signal: the top (active) card in the turn order UI has a gold
@@ -144,7 +144,7 @@ TARGETS = {
         "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12,
-        "roi": (0.00, 0.00, 0.20, 0.35),  # top-left turn order UI
+        "roi": (0.00, 0.00, 0.15, 0.15),  # top-left turn order UI
     },
     "TURN_ENEMY": {
         # Phase signal: the top (active) card in the turn order UI has red
@@ -156,7 +156,7 @@ TARGETS = {
         "color_mode": True,
         "threshold": 0.75,
         "min_matches": 12,
-        "roi": (0.00, 0.00, 0.20, 0.35),  # top-left turn order UI
+        "roi": (0.00, 0.00, 0.15, 0.15),  # top-left turn order UI
     },
     "GRADIENT_INCOMING": {
         # Phase signal: grey screen overlay — enemy is launching a gradient
