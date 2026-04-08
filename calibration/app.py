@@ -11,11 +11,13 @@ from vision.engine import Detection
 
 from .config import ASSETS_DIR, MONITOR_INDEX, SCREENSHOT_DIR, TARGETS
 from .logger import CalibrationLogger
+from .roi_overlay import draw_roi_overlays
 
 # Key Codes
-VK_START = 0x78  # F9
-VK_STOP  = 0x79  # F10
-VK_EXIT  = 0x7A  # F11
+VK_START   = 0x78  # F9  — start recording
+VK_STOP    = 0x79  # F10 — stop recording
+VK_EXIT    = 0x7A  # F11 — exit
+VK_ROI     = 0x09  # Tab — toggle ROI boundary overlay
 
 
 class CalibrationApp:
@@ -30,6 +32,7 @@ class CalibrationApp:
         self.vision_engine.load(TARGETS, ASSETS_DIR)
 
         self.running = True
+        self._show_roi: bool = True
         self._current_frame: np.ndarray | None = None
         self._last_detections: list[Detection] = []
         self._frame_lock = threading.Lock()
@@ -68,6 +71,12 @@ class CalibrationApp:
             self.running = False
             print("\n[Exit] Exiting program.")
 
+        if win32api.GetAsyncKeyState(VK_ROI) & 0x8000:
+            self._show_roi = not self._show_roi
+            state = "ON" if self._show_roi else "OFF"
+            print(f"[Overlay] ROI boundaries {state}")
+            time.sleep(0.3)  # debounce
+
     def _detection_loop(self) -> None:
         """Background thread: run vision detection as fast as the engine allows."""
         while self.running:
@@ -80,7 +89,7 @@ class CalibrationApp:
 
     def run(self) -> None:
         print("=== Calibration App Started ===")
-        print("F9: Start | F10: Stop | F11: Exit")
+        print("F9: Start | F10: Stop | F11: Exit | Tab: Toggle ROI overlay")
 
         detect_thread = threading.Thread(
             target=self._detection_loop, daemon=True, name="detection"
@@ -116,6 +125,10 @@ class CalibrationApp:
                 off_x = self.monitor_config["left"]
                 off_y = self.monitor_config["top"]
                 status_parts = [f"FPS: {fps:.1f}"]
+
+                if self._show_roi:
+                    frame_h, frame_w = frame.shape[:2]
+                    draw_roi_overlays(self.overlay, TARGETS, frame_w, frame_h, off_x, off_y)
 
                 for det in detections:
                     self.overlay.draw_box(
