@@ -37,7 +37,7 @@ class ScreenshotCollector:
     def _setup_monitor(self) -> dict:
         raw = self.sct.monitors[MONITOR_INDEX]
         w, h = raw["width"], raw["height"]
-        margin_h = int(h * 0.2)
+        margin_h = int(h * 0.0)
         return {
             "top": raw["top"] + margin_h,
             "left": raw["left"],
