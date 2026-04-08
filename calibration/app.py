@@ -1,3 +1,4 @@
+import threading
 import time
 
 import cv2
@@ -6,6 +7,7 @@ import numpy as np
 
 import vision
 from overlay_ui import OverlayWindow
+from vision.engine import Detection
 
 from .config import ASSETS_DIR, MONITOR_INDEX, SCREENSHOT_DIR, TARGETS
 from .logger import CalibrationLogger
@@ -28,6 +30,10 @@ class CalibrationApp:
         self.vision_engine.load(TARGETS, ASSETS_DIR)
 
         self.running = True
+        self._current_frame: np.ndarray | None = None
+        self._last_detections: list[Detection] = []
+        self._frame_lock = threading.Lock()
+        self._result_lock = threading.Lock()
 
     def _setup_monitor(self):
         """Configure monitor cropping region."""
@@ -62,9 +68,24 @@ class CalibrationApp:
             self.running = False
             print("\n[Exit] Exiting program.")
 
-    def run(self):
+    def _detection_loop(self) -> None:
+        """Background thread: run vision detection as fast as the engine allows."""
+        while self.running:
+            with self._frame_lock:
+                frame = self._current_frame
+            if frame is not None:
+                dets = self.vision_engine.detect(frame)
+                with self._result_lock:
+                    self._last_detections = dets
+
+    def run(self) -> None:
         print("=== Calibration App Started ===")
         print("F9: Start | F10: Stop | F11: Exit")
+
+        detect_thread = threading.Thread(
+            target=self._detection_loop, daemon=True, name="detection"
+        )
+        detect_thread.start()
 
         loop_time = time.time()
         try:
@@ -76,22 +97,26 @@ class CalibrationApp:
                 # 1. Input
                 self._handle_input()
 
-                # 2. Capture frame
+                # 2. Capture frame and hand it to the detection thread
                 screenshot = np.array(self.sct.grab(self.monitor_config))
                 if self.vision_engine.needs_color:
                     frame = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
                 else:
                     frame = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2GRAY)
 
+                with self._frame_lock:
+                    self._current_frame = frame
+
+                # 3. Read latest detections (non-blocking)
+                with self._result_lock:
+                    detections = list(self._last_detections)
+
+                # 4. Draw all detections on overlay and log them
                 self.overlay.clear()
                 off_x = self.monitor_config["left"]
                 off_y = self.monitor_config["top"]
                 status_parts = [f"FPS: {fps:.1f}"]
 
-                # 3. Detect
-                detections = self.vision_engine.detect(frame)
-
-                # 4. Draw all detections on overlay and log them
                 for det in detections:
                     self.overlay.draw_box(
                         det.x + off_x, det.y + off_y,
@@ -117,10 +142,12 @@ class CalibrationApp:
                     self.overlay.draw_status(f"○ IDLE [{self.engine_name}] {full_status}", "lime")
 
                 self.overlay.update()
+                time.sleep(0.016)  # ~60 FPS display cap
 
         except KeyboardInterrupt:
             print("\nInterrupted by user.")
         finally:
+            self.running = False  # signal detection thread to exit
             if self.logger.get_record_status():
                 self.logger.save_to_csv()
             self.overlay.destroy()

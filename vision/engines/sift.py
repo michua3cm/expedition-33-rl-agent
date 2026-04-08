@@ -5,7 +5,7 @@ import os
 import cv2
 import numpy as np
 
-from ..engine import HUE_RANGES, Detection, VisionEngine
+from ..engine import HUE_RANGES, Detection, VisionEngine, apply_roi
 from ..registry import register
 
 _DEFAULT_MIN_MATCHES = 12
@@ -75,17 +75,20 @@ class SIFTEngine(VisionEngine):
                 "kp": kp,
                 "des": des,
                 "min_matches": min_matches,
+                "roi": cfg.get("roi"),
             }
             print(f"[SIFTEngine] Loaded '{label}' (min_matches={min_matches})")
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
-        live_kp, live_des = self._sift.detectAndCompute(frame, None)
-        if live_des is None or len(live_des) < 2:
-            return []
-
         results: list[Detection] = []
+
         for label, data in self._templates.items():
             if data["des"] is None:
+                continue
+
+            roi_frame, off_x, off_y = apply_roi(frame, data.get("roi"))
+            live_kp, live_des = self._sift.detectAndCompute(roi_frame, None)
+            if live_des is None or len(live_des) < 2:
                 continue
 
             matches = self._flann.knnMatch(data["des"], live_des, k=2)
@@ -107,8 +110,8 @@ class SIFTEngine(VisionEngine):
             ]).reshape(-1, 1, 2)
             dst = cv2.perspectiveTransform(corners, M)
 
-            xs = [int(p[0][0]) for p in dst]
-            ys = [int(p[0][1]) for p in dst]
+            xs = [int(p[0][0]) + off_x for p in dst]
+            ys = [int(p[0][1]) + off_y for p in dst]
 
             # Normalise: at min_matches → 0.5, at 2×min_matches → 1.0
             confidence = min(len(good) / (2.0 * data["min_matches"]), 1.0)

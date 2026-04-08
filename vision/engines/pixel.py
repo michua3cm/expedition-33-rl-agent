@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 from ..engine import HUE_RANGES as _HUE_RANGES
-from ..engine import Detection, VisionEngine, nms
+from ..engine import Detection, VisionEngine, apply_roi, nms
 from ..registry import register
 
 _DEFAULT_THRESHOLD = 0.6
@@ -82,6 +82,7 @@ class PixelEngine(VisionEngine):
                 "h": img.shape[0],
                 "threshold": threshold,
                 "color": cfg.get("color") if color_mode else None,
+                "roi": cfg.get("roi"),
             }
             print(f"[PixelEngine] Loaded '{label}' ({kind}, threshold={threshold})")
 
@@ -123,12 +124,13 @@ class PixelEngine(VisionEngine):
 
             # --- Template matching (grey or BGR) ---
             src = frame if kind == _KIND_COLOR else _grey()
-            res = cv2.matchTemplate(src, data["image"], cv2.TM_CCOEFF_NORMED)
+            roi_src, off_x, off_y = apply_roi(src, data.get("roi"))
+            res = cv2.matchTemplate(roi_src, data["image"], cv2.TM_CCOEFF_NORMED)
             loc = np.where(res >= data["threshold"])
             expected_color = data.get("color")
             hue_ranges = _HUE_RANGES.get(expected_color) if expected_color else None
             for pt in zip(*loc[::-1]):
-                x, y = int(pt[0]), int(pt[1])
+                x, y = int(pt[0]) + off_x, int(pt[1]) + off_y
                 w, h = data["w"], data["h"]
                 # Color validation: reject hits whose dominant hue doesn't
                 # match the expected color.  Guards against structurally

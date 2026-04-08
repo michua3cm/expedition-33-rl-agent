@@ -4,7 +4,79 @@ Unit tests for vision/engine.py — Detection and GameState dataclasses.
 
 import numpy as np
 
-from vision.engine import Detection, GameState
+from vision.engine import Detection, GameState, apply_roi
+
+
+class TestApplyRoi:
+    def test_none_roi_returns_original_frame_with_zero_offsets(self):
+        # Arrange
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        # Act
+        result, off_x, off_y = apply_roi(frame, None)
+
+        # Assert
+        assert result is frame
+        assert off_x == 0
+        assert off_y == 0
+
+    def test_crops_width_and_height_correctly(self):
+        # Arrange
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        # Act — take right half, full height
+        cropped, off_x, off_y = apply_roi(frame, (0.5, 0.0, 0.5, 1.0))
+
+        # Assert
+        assert cropped.shape == (100, 100, 3)   # 200 * 0.5 = 100 wide
+        assert off_x == 100                     # 200 * 0.5
+        assert off_y == 0
+
+    def test_offsets_match_top_left_of_roi(self):
+        # Arrange
+        frame = np.zeros((200, 400, 3), dtype=np.uint8)
+
+        # Act
+        _, off_x, off_y = apply_roi(frame, (0.25, 0.50, 0.50, 0.25))
+
+        # Assert
+        assert off_x == 100   # 400 * 0.25
+        assert off_y == 100   # 200 * 0.50
+
+    def test_zero_size_roi_clamps_to_minimum_1x1(self):
+        # Arrange
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        # Act — degenerate roi with zero w/h fractions
+        cropped, _, _ = apply_roi(frame, (0.0, 0.0, 0.0, 0.0))
+
+        # Assert — must not produce a 0-size array
+        assert cropped.shape[0] >= 1
+        assert cropped.shape[1] >= 1
+
+    def test_works_with_greyscale_frame(self):
+        # Arrange
+        frame = np.zeros((100, 200), dtype=np.uint8)
+
+        # Act
+        cropped, off_x, off_y = apply_roi(frame, (0.0, 0.0, 0.5, 0.5))
+
+        # Assert
+        assert cropped.shape == (50, 100)
+        assert off_x == 0
+        assert off_y == 0
+
+    def test_cropped_region_contains_correct_pixels(self):
+        # Arrange — paint a known pixel at (120, 60) in a 100×200 frame
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+        frame[60, 120] = (255, 0, 0)   # x=120, y=60 in full frame
+
+        # Act — ROI covering x 100-200, y 0-100 (right half, full height)
+        cropped, off_x, off_y = apply_roi(frame, (0.5, 0.0, 0.5, 1.0))
+
+        # Assert — pixel should appear at (120-100, 60) = (20, 60) in crop
+        assert off_x == 100
+        assert np.array_equal(cropped[60, 20], [255, 0, 0])
 
 
 class TestDetection:
