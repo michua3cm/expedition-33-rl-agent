@@ -44,11 +44,16 @@ expedition-33-rl-agent/
 │
 ├── tests/                       # Unit tests — see TESTING.md
 │   ├── test_actions.py          # environment/actions.py
-│   ├── test_vision_engine.py    # vision/engine.py
+│   ├── test_vision_engine.py    # vision/engine.py (Detection, GameState, apply_roi, _iou, nms)
 │   ├── test_vision_registry.py  # vision/registry.py
+│   ├── test_pixel_engine.py     # vision/engines/pixel.py
+│   ├── test_feature_engines.py  # vision/engines/sift.py + orb.py
+│   ├── test_composite_engine.py # vision/engines/composite.py
 │   ├── test_calibration_logger.py  # calibration/logger.py
 │   ├── test_roi_overlay.py      # calibration/roi_overlay.py
 │   ├── test_collector.py        # calibration/collector.py
+│   ├── test_log_analyzer.py     # calibration/analysis/core.py
+│   ├── test_auto_label.py       # tools/auto_label.py
 │   ├── test_gym_env.py          # environment/gym_env.py
 │   ├── test_state_buffer.py     # environment/state_buffer.py
 │   ├── test_demo_recorder.py    # tools/demo_recorder.py

@@ -1,10 +1,10 @@
 """
-Unit tests for vision/engine.py — Detection and GameState dataclasses.
+Unit tests for vision/engine.py — Detection, GameState, apply_roi, _iou, nms.
 """
 
 import numpy as np
 
-from vision.engine import Detection, GameState, apply_roi
+from vision.engine import Detection, GameState, _iou, apply_roi, nms
 
 
 class TestApplyRoi:
@@ -167,3 +167,104 @@ class TestGameState:
         assert len(state.detections) == 2
         assert state.detections[0].label == "PERFECT"
         assert state.detections[1].label == "DODGE"
+
+
+# ---------------------------------------------------------------------------
+# _iou
+# ---------------------------------------------------------------------------
+
+class TestIou:
+    def _det(self, x, y, w, h) -> Detection:
+        return Detection(label="X", x=x, y=y, w=w, h=h, confidence=1.0)
+
+    def test_no_overlap_returns_zero(self):
+        a = self._det(0, 0, 10, 10)
+        b = self._det(20, 0, 10, 10)
+        assert _iou(a, b) == 0.0
+
+    def test_identical_boxes_return_one(self):
+        a = self._det(0, 0, 10, 10)
+        assert _iou(a, a) == 1.0
+
+    def test_half_horizontal_overlap(self):
+        # Boxes overlap by 5×10 = 50; union = 100+100-50 = 150
+        a = self._det(0, 0, 10, 10)
+        b = self._det(5, 0, 10, 10)
+        assert abs(_iou(a, b) - 50 / 150) < 1e-9
+
+    def test_touching_edges_returns_zero(self):
+        # Shares an edge but no interior area
+        a = self._det(0, 0, 10, 10)
+        b = self._det(10, 0, 10, 10)
+        assert _iou(a, b) == 0.0
+
+    def test_contained_box(self):
+        # Inner 10×10 fully inside 20×20 — intersection=100, union=400+100-100=400
+        outer = self._det(0, 0, 20, 20)
+        inner = self._det(5, 5, 10, 10)
+        assert abs(_iou(outer, inner) - 100 / 400) < 1e-9
+
+    def test_symmetry(self):
+        a = self._det(0, 0, 10, 10)
+        b = self._det(3, 3, 10, 10)
+        assert _iou(a, b) == _iou(b, a)
+
+
+# ---------------------------------------------------------------------------
+# nms
+# ---------------------------------------------------------------------------
+
+class TestNms:
+    def _det(self, label, x, y, w, h, conf) -> Detection:
+        return Detection(label=label, x=x, y=y, w=w, h=h, confidence=conf)
+
+    def test_empty_list_returns_empty(self):
+        assert nms([]) == []
+
+    def test_single_detection_returned_unchanged(self):
+        d = self._det("A", 0, 0, 10, 10, 0.9)
+        assert nms([d]) == [d]
+
+    def test_non_overlapping_same_label_both_kept(self):
+        a = self._det("A", 0, 0, 10, 10, 0.9)
+        b = self._det("A", 100, 0, 10, 10, 0.8)
+        assert len(nms([a, b])) == 2
+
+    def test_overlapping_same_label_lower_conf_suppressed(self):
+        # b is almost identical to a → high IoU → lower-conf b suppressed
+        high = self._det("A", 0, 0, 10, 10, 0.9)
+        low  = self._det("A", 1, 1, 10, 10, 0.5)
+        result = nms([high, low])
+        assert len(result) == 1
+        assert result[0].confidence == 0.9
+
+    def test_different_labels_not_suppressed(self):
+        # Same position, different labels — must both survive
+        a = self._det("A", 0, 0, 10, 10, 0.9)
+        b = self._det("B", 0, 0, 10, 10, 0.8)
+        assert len(nms([a, b])) == 2
+
+    def test_keeps_highest_conf_when_inputs_reversed(self):
+        # Input order should not matter — highest conf always wins
+        low  = self._det("A", 0, 0, 10, 10, 0.5)
+        high = self._det("A", 0, 0, 10, 10, 0.9)
+        result = nms([low, high])
+        assert len(result) == 1
+        assert result[0].confidence == 0.9
+
+    def test_custom_iou_threshold_controls_suppression(self):
+        # IoU between a and b ≈ 0.33 — kept at threshold 0.5, suppressed at 0.2
+        a = self._det("A", 0, 0, 10, 10, 0.9)
+        b = self._det("A", 5, 0, 10, 10, 0.7)
+        assert len(nms([a, b], iou_threshold=0.5)) == 2   # IoU < 0.5 → both kept
+        assert len(nms([a, b], iou_threshold=0.2)) == 1   # IoU > 0.2 → b suppressed
+
+    def test_multiple_labels_handled_independently(self):
+        # Two DODGE boxes (overlapping) + one PERFECT box
+        d1 = self._det("DODGE",   0, 0, 10, 10, 0.9)
+        d2 = self._det("DODGE",   1, 1, 10, 10, 0.6)
+        p  = self._det("PERFECT", 0, 0, 10, 10, 0.8)
+        result = nms([d1, d2, p])
+        labels = [r.label for r in result]
+        assert labels.count("DODGE") == 1    # one suppressed
+        assert labels.count("PERFECT") == 1  # untouched

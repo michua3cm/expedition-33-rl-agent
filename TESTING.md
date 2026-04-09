@@ -37,11 +37,16 @@ uv run pytest tests/ -x
 | Test file | Module under test | Key areas covered |
 |---|---|---|
 | `test_actions.py` | `environment/actions.py` | Constants, ACTION_NAMES, ACTION_INDEX, round-trip |
-| `test_vision_engine.py` | `vision/engine.py` | Detection fields/equality, GameState fields/defaults, apply_roi() |
+| `test_vision_engine.py` | `vision/engine.py` | Detection fields/equality, GameState, apply_roi(), _iou(), nms() |
 | `test_vision_registry.py` | `vision/registry.py` | register(), create(), available() |
+| `test_pixel_engine.py` | `vision/engines/pixel.py` | load() skip/reject logic, needs_color, hsv_sat detection |
+| `test_feature_engines.py` | `vision/engines/sift.py`, `orb.py` | load() file guards, detect() empty/no-keypoint paths |
+| `test_composite_engine.py` | `vision/engines/composite.py` | Target routing, needs_color propagation, result merging, frame forwarding |
 | `test_calibration_logger.py` | `calibration/logger.py` | Recording state, add_point(), save_to_csv() |
 | `test_roi_overlay.py` | `calibration/roi_overlay.py` | roi_to_pixels() conversions, draw_roi_overlays() dispatch |
 | `test_collector.py` | `calibration/collector.py` | YOLO label format, GRADIENT skip, trigger cooldown, mode flags, save counters |
+| `test_log_analyzer.py` | `calibration/analysis/core.py` | calculate_roi() padding/clamping, load_and_merge_logs() CSV handling |
+| `test_auto_label.py` | `tools/auto_label.py` | _detection_to_yolo() normalisation, _write_dataset_yaml() content |
 | `test_gym_env.py` | `environment/gym_env.py` | Spaces, reset, step, observation builder, reward, action dispatch |
 | `test_state_buffer.py` | `environment/state_buffer.py` | Lifecycle, state access, timeout, error resilience |
 | `test_demo_recorder.py` | `tools/demo_recorder.py` | Key/mouse mapping, capture loop, observation builder, save |
@@ -69,6 +74,52 @@ uv run pytest tests/ -x
 |---|---|
 | `TestDetection` | Field storage, value equality, label inequality, confidence at 0.0 and 1.0 |
 | `TestGameState` | All fields stored, `frame` defaults to `None`, empty and multi-detection lists |
+| `TestApplyRoi` | None passthrough, crop dimensions, offsets, 1×1 clamp, greyscale, pixel content |
+| `TestIou` | No overlap → 0.0, identical → 1.0, partial overlap, touching edges, contained box, symmetry |
+| `TestNms` | Empty list, single detection, non-overlapping both kept, overlapping lower-conf suppressed, different labels not suppressed, input-order independence, custom IoU threshold, multi-label independence |
+
+---
+
+## test_pixel_engine.py
+
+**Module:** `vision/engines/pixel.py`
+
+Template file loading uses `patch("os.path.exists")` and `patch("cv2.imread")`.  HSV saturation detection uses real numpy arrays — no mocking needed.
+
+| Test class | What is verified |
+|---|---|
+| `TestPixelEngineLoad` | Skips `file=None` with no `hsv_sat_max`, loads `hsv_sat` target, skips missing file, loads grey template, loads multiple targets |
+| `TestPixelEngineNeedsColor` | `False` when empty or grey-only, `True` when an `hsv_sat` target is loaded |
+| `TestPixelEngineDetectHsvSat` | Fires on grey BGR frame (sat ≈ 0), silent on colourful frame (sat = 255), confidence = 1.0 at zero saturation, detection covers full frame, empty templates → `[]` |
+
+---
+
+## test_feature_engines.py
+
+**Modules:** `vision/engines/sift.py`, `vision/engines/orb.py`
+
+Both engines share identical load-guard logic.  Real cv2 feature extractors are exercised on blank arrays (no template files required).
+
+| Test class | What is verified |
+|---|---|
+| `TestSIFTEngineLoad` | Skips `file=None` target, skips missing file, clears templates on reload, multiple `None` targets → zero loaded |
+| `TestSIFTEngineDetect` | Empty templates → `[]`, blank frame (no keypoints) → `[]` |
+| `TestORBEngineLoad` | Same four guards as SIFT |
+| `TestORBEngineDetect` | Empty templates → `[]`, blank frame (no keypoints) → `[]` |
+
+---
+
+## test_composite_engine.py
+
+**Module:** `vision/engines/composite.py`
+
+Sub-engines are replaced with `MagicMock` objects — no template files or cv2 inference.
+
+| Test class | What is verified |
+|---|---|
+| `TestCompositeEngineLoad` | Defaults to PIXEL, routes by `engine` key, groups targets correctly per sub-engine, clears on reload |
+| `TestCompositeEngineNeedsColor` | `False` when no sub-engines, `False` when all grey, `True` when any sub-engine needs colour |
+| `TestCompositeEngineDetect` | Returns `[]` with no sub-engines, merges detections from all sub-engines, passes BGR frame to colour engine, passes grey frame through unchanged |
 
 ---
 
@@ -107,6 +158,32 @@ All file I/O (`cv2.imwrite`, `open`) and platform APIs (`mss`, `OverlayWindow`, 
 |---|---|
 | `TestWriteYoloLabel` | Correct YOLO format (`class_id x_center y_center w h`), `GRADIENT_INCOMING` omitted, unknown labels omitted, multi-detection output, empty detection list produces empty file |
 | `TestSmartCollectorState` | Initial flags (`_trigger_mode=False`, `_auto_capture=False`, `_show_roi=True`), initial counts zero, trigger fires when cooldown elapsed and updates per-target timestamps, cooldown suppresses save within window, `_save_raw` increments `_raw_count`, `_save_labeled` increments `_labeled_count`, trigger block skipped when `_trigger_mode=False` |
+
+---
+
+## test_log_analyzer.py
+
+**Module:** `calibration/analysis/core.py`
+
+`_get_screen_resolution()` is patched out; `glob.glob` and `pd.read_csv` are mocked so no real CSV files are read.
+
+| Test class | What is verified |
+|---|---|
+| `TestCalculateRoi` | `None` input → `None`, empty DataFrame → `None`, correct ROI without padding, padding expands all four sides, clamped to `(0, 0)` at top-left, clamped to screen bounds at bottom-right, multiple detections produce union bounding box, `mon` key equals `MONITOR_INDEX` |
+| `TestLoadAndMergeLogs` | No CSV files → `None`, all empty files → `None`, single valid CSV → DataFrame, multiple CSVs merged, bad files skipped without raising |
+
+---
+
+## test_auto_label.py
+
+**Module:** `tools/auto_label.py`
+
+`builtins.open` is mocked so no YAML or label files are written to disk.
+
+| Test class | What is verified |
+|---|---|
+| `TestDetectionToYolo` | Output has five space-separated fields, class ID correct for every label in `CLASS_NAMES`, x/y/w/h normalised correctly, full-frame detection gives 0.5/0.5/1.0/1.0 |
+| `TestWriteDatasetYaml` | YAML content contains all class names, `nc:` field matches count, `train:` and `val:` keys present, sequential integer class IDs present |
 
 ---
 
