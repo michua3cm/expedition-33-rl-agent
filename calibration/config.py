@@ -23,17 +23,21 @@ def _find_primary_monitor() -> int:
 
 
 # Paths
-ASSETS_DIR = 'assets'
-LOG_DIR = os.path.join('data', 'logs')
-SCREENSHOT_DIR = os.path.join('data', 'screenshots')
-YOLO_RAW_DIR = os.path.join('data', 'yolo_dataset', 'images', 'raw')
-YOLO_MODEL_PATH = os.path.join('data', 'yolo_dataset', 'train', 'weights', 'best.pt')
-DEMO_DIR = os.path.join('data', 'demos')
+ASSETS_DIR               = 'assets'
+LOG_DIR                  = os.path.join('data', 'logs')
+SCREENSHOT_DIR           = os.path.join('data', 'screenshots')
+YOLO_RAW_DIR             = os.path.join('data', 'yolo_dataset', 'images', 'raw')
+YOLO_LABELED_IMAGES_DIR  = os.path.join('data', 'yolo_dataset', 'images', 'labeled')
+YOLO_LABELED_LABELS_DIR  = os.path.join('data', 'yolo_dataset', 'labels', 'labeled')
+YOLO_MODEL_PATH          = os.path.join('data', 'yolo_dataset', 'train', 'weights', 'best.pt')
+DEMO_DIR                 = os.path.join('data', 'demos')
 
 # Ensure directories exist
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 os.makedirs(YOLO_RAW_DIR, exist_ok=True)
+os.makedirs(YOLO_LABELED_IMAGES_DIR, exist_ok=True)
+os.makedirs(YOLO_LABELED_LABELS_DIR, exist_ok=True)
 os.makedirs(DEMO_DIR, exist_ok=True)
 
 # Global Settings
@@ -43,6 +47,21 @@ DEFAULT_MIN_MATCHES = 12
 # Detected once at import time — always resolves to the Windows primary
 # monitor regardless of how mss numbers physical monitors.
 MONITOR_INDEX: int = _find_primary_monitor()
+
+# YOLO class index — order is fixed and must never change once training begins.
+# Class ID is the list index (DODGE=0, PERFECT=1, …).
+YOLO_CLASSES: list[str] = [
+    "DODGE",              # 0
+    "PERFECT",            # 1
+    "PARRIED",            # 2
+    "JUMP_CUE",           # 3
+    "JUMP",               # 4
+    "MOUSE",              # 5
+    "BATTLE_WHEEL",       # 6
+    "TURN_ALLY",          # 7
+    "TURN_ENEMY",         # 8
+    "GRADIENT_INCOMING",  # 9
+]
 
 # --- TARGETS DEFINITION ---
 #
