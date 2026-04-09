@@ -1,5 +1,27 @@
 import os
 
+import mss as _mss
+
+
+def _find_primary_monitor() -> int:
+    """Return the mss index of the Windows primary monitor.
+
+    The primary monitor is always positioned at the virtual-desktop origin
+    (left=0, top=0).  Searching by coordinate rather than by index is robust
+    against monitor reordering caused by driver updates or cable changes.
+    Falls back to index 1 if no monitor at the origin is found, or when
+    running in a headless environment (CI, Linux without $DISPLAY).
+    """
+    try:
+        with _mss.mss() as sct:
+            for i, m in enumerate(sct.monitors[1:], start=1):
+                if m["left"] == 0 and m["top"] == 0:
+                    return i
+    except Exception:
+        pass
+    return 1  # safe fallback
+
+
 # Paths
 ASSETS_DIR = 'assets'
 LOG_DIR = os.path.join('data', 'logs')
@@ -18,10 +40,9 @@ os.makedirs(DEMO_DIR, exist_ok=True)
 DEFAULT_THRESHOLD = 0.6
 DEFAULT_MIN_MATCHES = 12
 
-# 0: All monitors
-# 1: monitor 1
-# 2: monitor 2 ... and so on
-MONITOR_INDEX = 3
+# Detected once at import time — always resolves to the Windows primary
+# monitor regardless of how mss numbers physical monitors.
+MONITOR_INDEX: int = _find_primary_monitor()
 
 # --- TARGETS DEFINITION ---
 #
