@@ -21,9 +21,10 @@ expedition-33-rl-agent/
 │
 ├── calibration/                 # Data collection and calibration tools
 │   ├── app.py                   # Calibration recorder (live vision over game)
-│   ├── collector.py             # Screenshot collector for YOLO training data
-│   ├── config.py                # TARGETS, thresholds, all path constants
+│   ├── collector.py             # SmartCollector: trigger / manual / auto screenshot capture
+│   ├── config.py                # TARGETS, YOLO_CLASSES, thresholds, all path constants
 │   ├── logger.py                # CSV logging for calibration sessions
+│   ├── roi_overlay.py           # ROI fractional-to-pixel conversion + overlay draw helper
 │   └── analysis/                # ROI optimisation from recorded logs
 │       ├── core.py              # Bounding-box analysis logic
 │       └── entry.py             # CLI entry point for analyze command
@@ -43,9 +44,16 @@ expedition-33-rl-agent/
 │
 ├── tests/                       # Unit tests — see TESTING.md
 │   ├── test_actions.py          # environment/actions.py
-│   ├── test_vision_engine.py    # vision/engine.py
+│   ├── test_vision_engine.py    # vision/engine.py (Detection, GameState, apply_roi, _iou, nms)
 │   ├── test_vision_registry.py  # vision/registry.py
+│   ├── test_pixel_engine.py     # vision/engines/pixel.py
+│   ├── test_feature_engines.py  # vision/engines/sift.py + orb.py
+│   ├── test_composite_engine.py # vision/engines/composite.py
 │   ├── test_calibration_logger.py  # calibration/logger.py
+│   ├── test_roi_overlay.py      # calibration/roi_overlay.py
+│   ├── test_collector.py        # calibration/collector.py
+│   ├── test_log_analyzer.py     # calibration/analysis/core.py
+│   ├── test_auto_label.py       # tools/auto_label.py
 │   ├── test_gym_env.py          # environment/gym_env.py
 │   ├── test_state_buffer.py     # environment/state_buffer.py
 │   ├── test_demo_recorder.py    # tools/demo_recorder.py
@@ -63,10 +71,12 @@ expedition-33-rl-agent/
     └── yolo_dataset/            # YOLO training dataset (auto-generated)
         ├── dataset.yaml         # Class names and split paths
         ├── images/
-        │   ├── raw/             # Collected screenshots (input to autolabel)
+        │   ├── raw/             # Unlabeled screenshots (collect F9/F10 → autolabel)
+        │   ├── labeled/         # Pre-labeled screenshots (collect F8 trigger mode)
         │   ├── train/           # Training split
         │   └── val/             # Validation split
         └── labels/
+            ├── labeled/         # YOLO .txt files paired with images/labeled/
             ├── train/           # YOLO .txt label files
             └── val/
 ```

@@ -1,6 +1,6 @@
 from .analysis.entry import run_analysis as run_analysis
 from .app import CalibrationApp
-from .collector import ScreenshotCollector
+from .collector import SmartCollector
 
 
 def run_recorder(engine="PIXEL"):
@@ -10,8 +10,8 @@ def run_recorder(engine="PIXEL"):
     app.run()
 
 
-def run_collector():
-    """Wrapper to instantiate and run the screenshot collector."""
-    print(">> [Collector] Starting screenshot collection for YOLO training data...")
-    collector = ScreenshotCollector()
+def run_collector(engine="COMPOSITE"):
+    """Wrapper to instantiate and run the smart screenshot collector."""
+    print(">> [Collector] Starting smart collection for YOLO training data...")
+    collector = SmartCollector(engine=engine)
     collector.run()
