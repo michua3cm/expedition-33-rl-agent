@@ -37,9 +37,11 @@ uv run pytest tests/ -x
 | Test file | Module under test | Key areas covered |
 |---|---|---|
 | `test_actions.py` | `environment/actions.py` | Constants, ACTION_NAMES, ACTION_INDEX, round-trip |
-| `test_vision_engine.py` | `vision/engine.py` | Detection fields/equality, GameState fields/defaults |
+| `test_vision_engine.py` | `vision/engine.py` | Detection fields/equality, GameState fields/defaults, apply_roi() |
 | `test_vision_registry.py` | `vision/registry.py` | register(), create(), available() |
 | `test_calibration_logger.py` | `calibration/logger.py` | Recording state, add_point(), save_to_csv() |
+| `test_roi_overlay.py` | `calibration/roi_overlay.py` | roi_to_pixels() conversions, draw_roi_overlays() dispatch |
+| `test_collector.py` | `calibration/collector.py` | YOLO label format, GRADIENT skip, trigger cooldown, mode flags, save counters |
 | `test_gym_env.py` | `environment/gym_env.py` | Spaces, reset, step, observation builder, reward, action dispatch |
 | `test_state_buffer.py` | `environment/state_buffer.py` | Lifecycle, state access, timeout, error resilience |
 | `test_demo_recorder.py` | `tools/demo_recorder.py` | Key/mouse mapping, capture loop, observation builder, save |
@@ -81,6 +83,30 @@ Each test isolates the global `_REGISTRY` via `patch.dict` to avoid cross-test c
 | `TestRegister` | Stores under uppercase key, returns the decorated class, overwrites duplicates |
 | `TestCreate` | Instantiates the correct class, case-insensitive lookup, `ValueError` for unknown engine with available names in message |
 | `TestAvailable` | Returns all registered names, empty list when registry is empty |
+
+---
+
+## test_roi_overlay.py
+
+**Module:** `calibration/roi_overlay.py`
+
+| Test class | What is verified |
+|---|---|
+| `TestRoiToPixels` | Fraction-to-pixel conversion, monitor offset addition, zero w/h clamped to ≥1, full-frame ROI covers entire frame |
+| `TestDrawRoiOverlays` | Targets without `roi` skipped, one `draw_roi_rect` call per target with ROI, monitor offsets applied, default color `"white"` when key absent |
+
+---
+
+## test_collector.py
+
+**Module:** `calibration/collector.py`
+
+All file I/O (`cv2.imwrite`, `open`) and platform APIs (`mss`, `OverlayWindow`, `vision.registry`) are mocked — no images are written to disk.
+
+| Test class | What is verified |
+|---|---|
+| `TestWriteYoloLabel` | Correct YOLO format (`class_id x_center y_center w h`), `GRADIENT_INCOMING` omitted, unknown labels omitted, multi-detection output, empty detection list produces empty file |
+| `TestSmartCollectorState` | Initial flags (`_trigger_mode=False`, `_auto_capture=False`, `_show_roi=True`), initial counts zero, trigger fires when cooldown elapsed and updates per-target timestamps, cooldown suppresses save within window, `_save_raw` increments `_raw_count`, `_save_labeled` increments `_labeled_count`, trigger block skipped when `_trigger_mode=False` |
 
 ---
 

@@ -63,13 +63,19 @@ Three commands, run in order. No game required for steps 2 and 3.
 uv run main.py collect
 ```
 
-| Key | Function |
-|---|---|
-| **F9** | Save a single screenshot |
-| **F10** | Toggle auto-capture (one screenshot per second) |
-| **F11** | Exit |
+The collector runs three independent save modes simultaneously:
 
-Screenshots are saved to `data/yolo_dataset/images/raw/`.
+| Key | Mode | Output |
+|---|---|---|
+| **F8** | Toggle trigger mode — saves PNG + YOLO label when a detection fires | `images/labeled/` + `labels/labeled/` |
+| **F9** | Manual — save one PNG immediately | `images/raw/` |
+| **F10** | Toggle auto-capture at 4 FPS | `images/raw/` |
+| **Tab** | Toggle ROI boundary overlay | — |
+| **F11** | Exit | — |
+
+**Trigger mode** uses a per-target cooldown of 0.4 s to avoid saving duplicate frames of the same static UI element. `GRADIENT_INCOMING` is never written to label files (no bounding box). The overlay shows `●TRIG` / `●AUTO` in red when either active mode is on.
+
+Pre-labeled frames go directly to `images/labeled/` and `labels/labeled/` and can be used for training without a separate autolabel step. Unlabeled raw frames in `images/raw/` must go through the autolabel step first.
 
 ### Step 2 — Auto-label with PIXEL
 
