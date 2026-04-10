@@ -23,7 +23,7 @@ def main():
 
     # ── collect ───────────────────────────────────────────────────────────────
     subparsers.add_parser(
-        "collect", help="Capture screenshots for YOLO training data (F9/F10/F11)"
+        "collect", help="Capture screenshots for YOLO training data (F8 trigger / F9 manual / F10 auto)"
     )
 
     # ── autolabel ─────────────────────────────────────────────────────────────
