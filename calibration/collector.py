@@ -59,7 +59,9 @@ class SmartCollector:
         self._show_roi = True
 
         self._current_frame: np.ndarray | None = None
+        self._current_frame_bgr: np.ndarray | None = None  # BGR copy for trigger saves
         self._last_detections: list[Detection] = []
+        self._last_detected_bgr: np.ndarray | None = None  # frame that produced _last_detections
         self._frame_lock = threading.Lock()
         self._result_lock = threading.Lock()
 
@@ -141,10 +143,12 @@ class SmartCollector:
         while self.running:
             with self._frame_lock:
                 frame = self._current_frame
+                frame_bgr = self._current_frame_bgr
             if frame is not None:
                 dets = self.vision_engine.detect(frame)
                 with self._result_lock:
                     self._last_detections = dets
+                    self._last_detected_bgr = frame_bgr  # paired with these detections
 
     # ------------------------------------------------------------------
     # Input handling
@@ -218,21 +222,23 @@ class SmartCollector:
 
                 with self._frame_lock:
                     self._current_frame = frame
+                    self._current_frame_bgr = frame_bgr
 
                 # 2. Read latest detections (non-blocking)
                 with self._result_lock:
                     detections = list(self._last_detections)
+                    detected_bgr = self._last_detected_bgr
 
                 # 3. Handle keyboard input
                 self._handle_input(frame_bgr)
 
-                # 4. Trigger mode: save labeled frame when any detection fires
-                #    and its per-target cooldown has elapsed.
-                if self._trigger_mode and detections:
+                # 4. Trigger mode: save the frame that was actually detected on
+                #    (not the latest capture) so the label coords match the image.
+                if self._trigger_mode and detections and detected_bgr is not None:
                     for det in detections:
                         last = self._trigger_cooldowns.get(det.label, 0.0)
                         if curr_time - last >= TRIGGER_COOLDOWN:
-                            self._save_labeled(frame_bgr, detections)
+                            self._save_labeled(detected_bgr, detections)
                             # Reset cooldowns for every label in this save so
                             # the same static scene is not saved again immediately.
                             for d in detections:
