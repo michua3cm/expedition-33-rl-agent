@@ -6,12 +6,9 @@ All filesystem access is mocked — no real label files are read or written.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, mock_open, patch
-
-import pytest
+from unittest.mock import mock_open, patch
 
 from tools.dataset_status import _count_labels, _print_table, run
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -226,7 +223,7 @@ class TestRun:
         assert "Pre-autolabel" in mock_table.call_args[0][0]
 
     def test_reports_post_autolabel_source_when_train_dir_has_data(self, capsys):
-        from tools.dataset_status import TRAIN_LABELS, YOLO_LABELED_LABELS_DIR
+        from tools.dataset_status import TRAIN_LABELS
 
         def _isdir(path: str) -> bool:
             return path == TRAIN_LABELS
