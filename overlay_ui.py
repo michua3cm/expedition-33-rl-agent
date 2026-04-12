@@ -34,8 +34,9 @@ class OverlayWindow:
         self.root.after(10, self.set_click_through)
 
     def set_click_through(self):
-        import win32con  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
-        import win32gui  # type: ignore
+        import ctypes          # type: ignore  # Windows-only; imported lazily so the module loads on Linux
+        import win32con        # type: ignore
+        import win32gui        # type: ignore
         # Get window handle (HWND)
         hwnd = win32gui.FindWindow(None, "AI_Vision_Overlay")
         if hwnd:
@@ -54,6 +55,11 @@ class OverlayWindow:
                 0, 0, 0, 0,
                 win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE,
             )
+            # Exclude this window from screen capture (mss, OBS, PrintScreen, etc.)
+            # so that overlay boxes and status text are never baked into saved screenshots.
+            # WDA_EXCLUDEFROMCAPTURE = 0x11, available on Windows 10 build 19041+
+            WDA_EXCLUDEFROMCAPTURE = 0x11
+            ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)
         # Keep re-asserting topmost periodically so apps that temporarily
         # steal Z-order (video players, IDEs, etc.) don't cover the overlay.
         self.root.after(_TOPMOST_INTERVAL_MS, self.set_click_through)
