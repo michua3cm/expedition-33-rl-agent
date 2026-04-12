@@ -13,6 +13,10 @@ Full reference for all commands in the Expedition 33 RL Agent project.
 - [Calibration Recorder](#calibration-recorder)
 - [ROI Analysis](#roi-analysis)
 - [YOLO Training Pipeline](#yolo-training-pipeline)
+  - [Step 1 — Collect screenshots](#step-1--collect-screenshots)
+  - [Step 1.5 — Check dataset status](#step-15--check-dataset-status)
+  - [Step 2 — Auto-label with PIXEL](#step-2--auto-label-with-pixel)
+  - [Step 3 — Train](#step-3--train)
 - [Human Demo Recorder](#human-demo-recorder)
 - [Vision Benchmark](#vision-benchmark)
 - [Running Tests](#running-tests)
@@ -76,6 +80,41 @@ The collector runs three independent save modes simultaneously:
 **Trigger mode** uses a per-target cooldown of 0.4 s to avoid saving duplicate frames of the same static UI element. `GRADIENT_INCOMING` is never written to label files (no bounding box). The overlay shows `●TRIG` / `●AUTO` in red when either active mode is on.
 
 Pre-labeled frames go directly to `images/labeled/` and `labels/labeled/` and can be used for training without a separate autolabel step. Unlabeled raw frames in `images/raw/` must go through the autolabel step first.
+
+### Step 1.5 — Check dataset status
+
+Before autolabeling, verify you have enough data per class. Running this between collection sessions tells you exactly which classes to focus on next.
+
+```bash
+uv run main.py status                  # default minimum: 50 instances per class
+uv run main.py status --target 30      # lower bar for a quick first training run
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--target` | `50` | Minimum instances per class to be considered ready |
+
+Scans `labels/labeled/` (trigger-mode saves) and `labels/train/` + `labels/val/` (post-autolabel) and reports whichever sources contain data. Example output:
+
+```
+=== Dataset Status ===
+
+Pre-autolabel  (data/yolo_dataset/labels/labeled/)
+  Class                  Instances     Images    Status
+  ────────────────────────────────────────────────────────────
+  BATTLE_WHEEL                  52         41    OK
+  DODGE                         18         14    LOW  (need 32 more)
+  GRADIENT_INCOMING              0          0    MISSING
+  JUMP                           3          3    LOW  (need 47 more)
+  JUMP_CUE                       61         54    OK
+  MOUSE                          7          7    LOW  (need 43 more)
+  PARRIED                       22         19    LOW  (need 28 more)
+  PERFECT                       55         48    OK
+  TURN_ALLY                     88         71    OK
+  TURN_ENEMY                    91         74    OK
+```
+
+Only proceed to Step 2 once all classes show `OK`, or consciously accept the gaps.
 
 ### Step 2 — Auto-label with PIXEL
 

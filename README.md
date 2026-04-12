@@ -101,6 +101,7 @@ uv sync --group dev      # also installs pytest + pytest-mock
 | `uv run main.py record` | Run vision system live, record detections to CSV |
 | `uv run main.py analyze` | Calculate optimal capture ROI from recorded logs |
 | `uv run main.py collect` | Collect screenshots for YOLO training |
+| `uv run main.py status` | Report per-class label counts — see which classes need more data |
 | `uv run main.py autolabel` | Auto-label screenshots with PIXEL engine |
 | `uv run main.py train` | Train YOLOv8 on the labeled dataset |
 | `uv run python -m tools.demo_recorder` | Record human gameplay demonstrations |
