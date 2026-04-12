@@ -44,6 +44,7 @@ def run(epochs: int = 100, imgsz: int = 640, base_model: str = DEFAULT_MODEL) ->
         project=OUTPUT_DIR,
         name="train",
         exist_ok=True,
+        cache=False
     )
 
     best = os.path.join(OUTPUT_DIR, "train", "weights", "best.pt")
