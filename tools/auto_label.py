@@ -37,6 +37,7 @@ import vision
 from calibration.config import (
     ASSETS_DIR,
     TARGETS,
+    YOLO_CLASSES,
     YOLO_LABELED_IMAGES_DIR,
     YOLO_LABELED_LABELS_DIR,
 )
@@ -46,8 +47,9 @@ DATASET_DIR  = os.path.join("data", "yolo_dataset")
 RAW_DIR      = os.path.join(DATASET_DIR, "images", "raw")
 DATASET_YAML = os.path.join(DATASET_DIR, "dataset.yaml")
 
-# Class IDs — sorted alphabetically for reproducibility
-CLASS_NAMES: list[str] = sorted(TARGETS.keys())
+# Class IDs — must match YOLO_CLASSES order so trigger-mode labels and
+# autolabel-generated labels use the same class_id numbering.
+CLASS_NAMES: list[str] = YOLO_CLASSES
 CLASS_ID: dict[str, int] = {name: i for i, name in enumerate(CLASS_NAMES)}
 
 
