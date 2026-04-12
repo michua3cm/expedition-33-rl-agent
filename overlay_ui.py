@@ -34,9 +34,10 @@ class OverlayWindow:
         self.root.after(10, self.set_click_through)
 
     def set_click_through(self):
-        import ctypes          # type: ignore  # Windows-only; imported lazily so the module loads on Linux
-        import win32con        # type: ignore
-        import win32gui        # type: ignore
+        import ctypes  # type: ignore  # Windows-only; imported lazily so the module loads on Linux
+
+        import win32con  # type: ignore
+        import win32gui  # type: ignore
         # Get window handle (HWND)
         hwnd = win32gui.FindWindow(None, "AI_Vision_Overlay")
         if hwnd:
