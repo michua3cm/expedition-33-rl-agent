@@ -64,6 +64,17 @@ def main():
         "analyze", help="Analyze calibration logs and calculate the optimal ROI"
     )
 
+    # ── status ────────────────────────────────────────────────────────────────
+    parser_status = subparsers.add_parser(
+        "status", help="Report per-class label counts and flag classes needing more data"
+    )
+    parser_status.add_argument(
+        "--target",
+        type=int,
+        default=50,
+        help="Minimum instances per class to be considered ready (default: 50)",
+    )
+
     # ── routing ───────────────────────────────────────────────────────────────
     args = parser.parse_args()
 
@@ -90,6 +101,10 @@ def main():
     elif args.mode == "analyze":
         print(">> Running Analysis Tool...")
         run_analysis()
+
+    elif args.mode == "status":
+        from tools.dataset_status import run as run_status
+        run_status(target=args.target)
 
     else:
         parser.print_help()
