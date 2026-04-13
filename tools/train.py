@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import os
 
-DATASET_YAML = os.path.join("data", "yolo_dataset", "dataset.yaml")
-OUTPUT_DIR   = os.path.join("data", "yolo_dataset")
+DATASET_YAML = os.path.abspath(os.path.join("data", "yolo_dataset", "dataset.yaml"))
+OUTPUT_DIR   = os.path.abspath(os.path.join("data", "yolo_dataset"))
 DEFAULT_MODEL = "yolov8n.pt"  # nano — fastest inference, good starting point
 
 
