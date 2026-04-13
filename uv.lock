@@ -245,12 +245,14 @@ dependencies = [
     { name = "pandas" },
     { name = "pynput" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "torch" },
-    { name = "torchvision" },
     { name = "ultralytics" },
 ]
 
 [package.dev-dependencies]
+cuda = [
+    { name = "torch" },
+    { name = "torchvision" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-mock" },
@@ -266,12 +268,14 @@ requires-dist = [
     { name = "pandas", specifier = "==3.0.0" },
     { name = "pynput" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = "==311" },
-    { name = "torch", specifier = "==2.11.0+cu128", index = "https://download.pytorch.org/whl/cu128" },
-    { name = "torchvision", index = "https://download.pytorch.org/whl/cu128" },
     { name = "ultralytics" },
 ]
 
 [package.metadata.requires-dev]
+cuda = [
+    { name = "torch", specifier = "==2.11.0+cu128", index = "https://download.pytorch.org/whl/cu128" },
+    { name = "torchvision", index = "https://download.pytorch.org/whl/cu128" },
+]
 dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-mock", specifier = ">=3.14" },
