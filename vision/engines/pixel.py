@@ -63,28 +63,36 @@ class PixelEngine(VisionEngine):
                 continue
 
             # --- template-based targets ---
-            path = os.path.join(assets_dir, file_name)
-            if not os.path.exists(path):
-                print(f"[PixelEngine] Warning: '{file_name}' not found, skipping '{label}'.")
-                continue
+            # Normalise: a single filename string is treated as a one-item list.
+            file_names: list[str] = [file_name] if isinstance(file_name, str) else list(file_name)
             color_mode = bool(cfg.get("color_mode", False))
-            flags = cv2.IMREAD_COLOR if color_mode else cv2.IMREAD_GRAYSCALE
-            img = cv2.imread(path, flags)
-            if img is None:
-                print(f"[PixelEngine] Error: failed to load '{file_name}'.")
-                continue
             kind = _KIND_COLOR if color_mode else _KIND_GREY
+            flags = cv2.IMREAD_COLOR if color_mode else cv2.IMREAD_GRAYSCALE
             threshold = cfg.get("threshold", _DEFAULT_THRESHOLD)
+
+            templates: list[dict] = []
+            for fname in file_names:
+                path = os.path.join(assets_dir, fname)
+                if not os.path.exists(path):
+                    print(f"[PixelEngine] Warning: '{fname}' not found, skipping for '{label}'.")
+                    continue
+                img = cv2.imread(path, flags)
+                if img is None:
+                    print(f"[PixelEngine] Error: failed to load '{fname}'.")
+                    continue
+                templates.append({"image": img, "w": img.shape[1], "h": img.shape[0]})
+
+            if not templates:
+                continue
+
             self._targets[label] = {
                 "kind": kind,
-                "image": img,
-                "w": img.shape[1],
-                "h": img.shape[0],
+                "templates": templates,
                 "threshold": threshold,
                 "color": cfg.get("color") if color_mode else None,
                 "roi": cfg.get("roi"),
             }
-            print(f"[PixelEngine] Loaded '{label}' ({kind}, threshold={threshold})")
+            print(f"[PixelEngine] Loaded '{label}' ({kind}, {len(templates)} template(s), threshold={threshold})")
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
         # Derive auxiliary frames lazily — only when a target needs them.
@@ -125,32 +133,33 @@ class PixelEngine(VisionEngine):
             # --- Template matching (grey or BGR) ---
             src = frame if kind == _KIND_COLOR else _grey()
             roi_src, off_x, off_y = apply_roi(src, data.get("roi"))
-            res = cv2.matchTemplate(roi_src, data["image"], cv2.TM_CCOEFF_NORMED)
-            loc = np.where(res >= data["threshold"])
             expected_color = data.get("color")
             hue_ranges = _HUE_RANGES.get(expected_color) if expected_color else None
-            for pt in zip(*loc[::-1]):
-                x, y = int(pt[0]) + off_x, int(pt[1]) + off_y
-                w, h = data["w"], data["h"]
-                # Color validation: reject hits whose dominant hue doesn't
-                # match the expected color.  Guards against structurally
-                # similar templates (e.g. TURN_ALLY blue vs TURN_ENEMY red)
-                # that TM_CCOEFF_NORMED can confuse because it subtracts the
-                # channel mean before correlating.
-                if hue_ranges is not None:
-                    roi_hsv = cv2.cvtColor(frame[y:y + h, x:x + w], cv2.COLOR_BGR2HSV)
-                    sat_mask = roi_hsv[:, :, 1] > 40  # ignore near-grey pixels
-                    if sat_mask.any():
-                        dominant_hue = float(np.median(roi_hsv[:, :, 0][sat_mask]))
-                        if not any(lo <= dominant_hue <= hi for lo, hi in hue_ranges):
-                            continue
-                results.append(Detection(
-                    label=label,
-                    x=x,
-                    y=y,
-                    w=w,
-                    h=h,
-                    confidence=float(res[pt[1], pt[0]]),
-                ))
+            # Color validation: reject hits whose dominant hue doesn't
+            # match the expected color.  Guards against structurally
+            # similar templates (e.g. TURN_ALLY blue vs TURN_ENEMY red)
+            # that TM_CCOEFF_NORMED can confuse because it subtracts the
+            # channel mean before correlating.
+            for tmpl in data["templates"]:
+                res = cv2.matchTemplate(roi_src, tmpl["image"], cv2.TM_CCOEFF_NORMED)
+                loc = np.where(res >= data["threshold"])
+                for pt in zip(*loc[::-1]):
+                    x, y = int(pt[0]) + off_x, int(pt[1]) + off_y
+                    w, h = tmpl["w"], tmpl["h"]
+                    if hue_ranges is not None:
+                        roi_hsv = cv2.cvtColor(frame[y:y + h, x:x + w], cv2.COLOR_BGR2HSV)
+                        sat_mask = roi_hsv[:, :, 1] > 40  # ignore near-grey pixels
+                        if sat_mask.any():
+                            dominant_hue = float(np.median(roi_hsv[:, :, 0][sat_mask]))
+                            if not any(lo <= dominant_hue <= hi for lo, hi in hue_ranges):
+                                continue
+                    results.append(Detection(
+                        label=label,
+                        x=x,
+                        y=y,
+                        w=w,
+                        h=h,
+                        confidence=float(res[pt[1], pt[0]]),
+                    ))
 
         return nms(results)

@@ -58,6 +58,45 @@ class TestPixelEngineLoad:
         assert "DODGE" in engine._targets
         assert engine._targets["DODGE"]["kind"] == "grey"
         assert engine._targets["DODGE"]["threshold"] == 0.7
+        assert len(engine._targets["DODGE"]["templates"]) == 1
+
+    def test_loads_multiple_files_for_single_label(self):
+        engine = PixelEngine()
+        fake_img = np.zeros((20, 30), dtype=np.uint8)
+        with (
+            patch("vision.engines.pixel.os.path.exists", return_value=True),
+            patch("vision.engines.pixel.cv2.imread", return_value=fake_img),
+        ):
+            engine.load(
+                {"DODGE": {"file": ["t1.png", "t2.png", "t3.png"], "threshold": 0.7}},
+                "/fake",
+            )
+        assert "DODGE" in engine._targets
+        assert len(engine._targets["DODGE"]["templates"]) == 3
+
+    def test_skips_missing_files_within_list(self):
+        engine = PixelEngine()
+        fake_img = np.zeros((10, 10), dtype=np.uint8)
+
+        def _exists(path: str) -> bool:
+            return "present.png" in path
+
+        with (
+            patch("vision.engines.pixel.os.path.exists", side_effect=_exists),
+            patch("vision.engines.pixel.cv2.imread", return_value=fake_img),
+        ):
+            engine.load(
+                {"DODGE": {"file": ["present.png", "missing.png"]}},
+                "/fake",
+            )
+        assert "DODGE" in engine._targets
+        assert len(engine._targets["DODGE"]["templates"]) == 1
+
+    def test_skips_label_when_all_files_missing(self):
+        engine = PixelEngine()
+        with patch("vision.engines.pixel.os.path.exists", return_value=False):
+            engine.load({"DODGE": {"file": ["a.png", "b.png"]}}, "/fake")
+        assert "DODGE" not in engine._targets
 
     def test_loads_multiple_targets(self):
         engine = PixelEngine()
