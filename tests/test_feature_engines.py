@@ -54,6 +54,28 @@ class TestSIFTEngineLoad:
         )
         assert len(engine._templates) == 0
 
+    def test_loads_multiple_files_for_single_label(self):
+        # SIFT load does not gate on des being None, so a blank image is enough
+        # to trigger variant creation without needing to mock detectAndCompute.
+        engine = SIFTEngine()
+        fake_img = np.zeros((20, 20), dtype=np.uint8)
+        with (
+            patch("vision.engines.sift.os.path.exists", return_value=True),
+            patch("vision.engines.sift.cv2.imread", return_value=fake_img),
+        ):
+            engine.load(
+                {"DODGE": {"file": ["t1.png", "t2.png"]}},
+                "/fake",
+            )
+        assert "DODGE" in engine._templates
+        assert len(engine._templates["DODGE"]["variants"]) == 2
+
+    def test_skips_label_when_all_files_missing(self):
+        engine = SIFTEngine()
+        with patch("vision.engines.sift.os.path.exists", return_value=False):
+            engine.load({"DODGE": {"file": ["a.png", "b.png"]}}, "/fake")
+        assert "DODGE" not in engine._templates
+
 
 class TestSIFTEngineDetect:
     def test_returns_empty_list_when_no_templates_loaded(self):
@@ -66,12 +88,16 @@ class TestSIFTEngineDetect:
         engine = SIFTEngine()
         # Load a dummy template descriptor to enter the matching loop
         engine._templates["DODGE"] = {
-            "des": np.zeros((10, 128), dtype=np.float32),
-            "kp": [],
+            "variants": [
+                {
+                    "des": np.zeros((10, 128), dtype=np.float32),
+                    "kp": [],
+                    "w": 10,
+                    "h": 10,
+                }
+            ],
             "min_matches": 5,
             "roi": None,
-            "w": 10,
-            "h": 10,
         }
         assert engine.detect(_blank_frame()) == []
 
@@ -110,6 +136,32 @@ class TestORBEngineLoad:
         )
         assert len(engine._templates) == 0
 
+    def test_loads_multiple_files_for_single_label(self):
+        # ORB skips variants with des=None, so we must mock ORB_create before
+        # instantiation to inject a detectAndCompute that returns real des.
+        fake_img = np.zeros((20, 20), dtype=np.uint8)
+        fake_des = np.zeros((4, 32), dtype=np.uint8)
+        with (
+            patch("vision.engines.orb.os.path.exists", return_value=True),
+            patch("vision.engines.orb.cv2.imread", return_value=fake_img),
+            patch("vision.engines.orb.cv2.ORB_create") as mock_orb_create,
+            patch("vision.engines.orb.cv2.BFMatcher"),
+        ):
+            mock_orb_create.return_value.detectAndCompute.return_value = ([], fake_des)
+            engine = ORBEngine()
+            engine.load(
+                {"DODGE": {"file": ["t1.png", "t2.png"]}},
+                "/fake",
+            )
+        assert "DODGE" in engine._templates
+        assert len(engine._templates["DODGE"]["variants"]) == 2
+
+    def test_skips_label_when_all_files_missing(self):
+        engine = ORBEngine()
+        with patch("vision.engines.orb.os.path.exists", return_value=False):
+            engine.load({"DODGE": {"file": ["a.png", "b.png"]}}, "/fake")
+        assert "DODGE" not in engine._templates
+
 
 class TestORBEngineDetect:
     def test_returns_empty_list_when_no_templates_loaded(self):
@@ -121,11 +173,15 @@ class TestORBEngineDetect:
         # → live_des is None → skipped → empty result
         engine = ORBEngine()
         engine._templates["DODGE"] = {
-            "des": np.zeros((10, 32), dtype=np.uint8),
-            "kp": [],
+            "variants": [
+                {
+                    "des": np.zeros((10, 32), dtype=np.uint8),
+                    "kp": [],
+                    "w": 10,
+                    "h": 10,
+                }
+            ],
             "min_matches": 5,
             "roi": None,
-            "w": 10,
-            "h": 10,
         }
         assert engine.detect(_blank_frame()) == []

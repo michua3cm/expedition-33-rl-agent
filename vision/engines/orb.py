@@ -44,47 +44,60 @@ class ORBEngine(VisionEngine):
             if file_name is None:
                 print(f"[ORBEngine] Skipping '{label}' (no template file — not supported by ORB).")
                 continue
-            path = os.path.join(assets_dir, file_name)
-            if not os.path.exists(path):
-                print(f"[ORBEngine] Warning: '{file_name}' not found, skipping '{label}'.")
-                continue
+
+            # Normalise: a single filename string is treated as a one-item list.
+            file_names: list[str] = [file_name] if isinstance(file_name, str) else list(file_name)
             # Build a color mask when requested so that keypoints are only
             # detected on the colored icon pixels, not in hollow background
             # regions (mirrors the same fix in SIFTEngine).
             hue_ranges = HUE_RANGES.get(cfg.get("color", "")) if cfg.get("color_mask") else None
-            if hue_ranges is not None:
-                img_bgr = cv2.imread(path, cv2.IMREAD_COLOR)
-                if img_bgr is None:
-                    print(f"[ORBEngine] Error: failed to load '{file_name}'.")
-                    continue
-                img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-                hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-                mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
-                for lo, hi in hue_ranges:
-                    mask |= cv2.inRange(hsv, (lo, 100, 200), (hi, 255, 255))
-                mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=1)
-            else:
-                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-                if img is None:
-                    print(f"[ORBEngine] Error: failed to load '{file_name}'.")
-                    continue
-                mask = None
-
-            kp, des = self._orb.detectAndCompute(img, mask)
-            if des is None:
-                print(f"[ORBEngine] Warning: no keypoints found in '{cfg['file']}', skipping '{label}'.")
-                continue
             min_matches = cfg.get("min_matches", _DEFAULT_MIN_MATCHES)
+
+            variants: list[dict] = []
+            for fname in file_names:
+                path = os.path.join(assets_dir, fname)
+                if not os.path.exists(path):
+                    print(f"[ORBEngine] Warning: '{fname}' not found, skipping for '{label}'.")
+                    continue
+                if hue_ranges is not None:
+                    img_bgr = cv2.imread(path, cv2.IMREAD_COLOR)
+                    if img_bgr is None:
+                        print(f"[ORBEngine] Error: failed to load '{fname}'.")
+                        continue
+                    img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+                    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+                    mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
+                    for lo, hi in hue_ranges:
+                        mask |= cv2.inRange(hsv, (lo, 100, 200), (hi, 255, 255))
+                    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=1)
+                else:
+                    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+                    if img is None:
+                        print(f"[ORBEngine] Error: failed to load '{fname}'.")
+                        continue
+                    mask = None
+
+                kp, des = self._orb.detectAndCompute(img, mask)
+                if des is None:
+                    print(f"[ORBEngine] Warning: no keypoints found in '{fname}', skipping for '{label}'.")
+                    continue
+                variants.append({
+                    "image": img,
+                    "w": img.shape[1],
+                    "h": img.shape[0],
+                    "kp": kp,
+                    "des": des,
+                })
+
+            if not variants:
+                continue
+
             self._templates[label] = {
-                "image": img,
-                "w": img.shape[1],
-                "h": img.shape[0],
-                "kp": kp,
-                "des": des,
+                "variants": variants,
                 "min_matches": min_matches,
                 "roi": cfg.get("roi"),
             }
-            print(f"[ORBEngine] Loaded '{label}' (min_matches={min_matches})")
+            print(f"[ORBEngine] Loaded '{label}' ({len(variants)} variant(s), min_matches={min_matches})")
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
         results: list[Detection] = []
@@ -95,45 +108,46 @@ class ORBEngine(VisionEngine):
             if live_des is None or len(live_des) < 2:
                 continue
 
-            matches = self._matcher.knnMatch(data["des"], live_des, k=2)
+            for variant in data["variants"]:
+                matches = self._matcher.knnMatch(variant["des"], live_des, k=2)
 
-            # Lowe's ratio test — guard against pairs with fewer than 2 neighbours
-            good = [
-                m for pair in matches
-                if len(pair) == 2
-                for m, n in [pair]
-                if m.distance < 0.75 * n.distance
-            ]
+                # Lowe's ratio test — guard against pairs with fewer than 2 neighbours
+                good = [
+                    m for pair in matches
+                    if len(pair) == 2
+                    for m, n in [pair]
+                    if m.distance < 0.75 * n.distance
+                ]
 
-            if len(good) < data["min_matches"]:
-                continue
+                if len(good) < data["min_matches"]:
+                    continue
 
-            src_pts = np.float32([data["kp"][m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-            dst_pts = np.float32([live_kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-            M, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+                src_pts = np.float32([variant["kp"][m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+                dst_pts = np.float32([live_kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+                M, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
-            if M is None:
-                continue
+                if M is None:
+                    continue
 
-            h, w = data["h"], data["w"]
-            corners = np.float32([
-                [0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]
-            ]).reshape(-1, 1, 2)
-            dst = cv2.perspectiveTransform(corners, M)
+                h, w = variant["h"], variant["w"]
+                corners = np.float32([
+                    [0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]
+                ]).reshape(-1, 1, 2)
+                dst = cv2.perspectiveTransform(corners, M)
 
-            xs = [int(p[0][0]) + off_x for p in dst]
-            ys = [int(p[0][1]) + off_y for p in dst]
+                xs = [int(p[0][0]) + off_x for p in dst]
+                ys = [int(p[0][1]) + off_y for p in dst]
 
-            # Normalise: min_matches → 0.5, 2×min_matches → 1.0
-            confidence = min(len(good) / (2.0 * data["min_matches"]), 1.0)
+                # Normalise: min_matches → 0.5, 2×min_matches → 1.0
+                confidence = min(len(good) / (2.0 * data["min_matches"]), 1.0)
 
-            results.append(Detection(
-                label=label,
-                x=min(xs),
-                y=min(ys),
-                w=max(xs) - min(xs),
-                h=max(ys) - min(ys),
-                confidence=confidence,
-            ))
+                results.append(Detection(
+                    label=label,
+                    x=min(xs),
+                    y=min(ys),
+                    w=max(xs) - min(xs),
+                    h=max(ys) - min(ys),
+                    confidence=confidence,
+                ))
 
         return results
