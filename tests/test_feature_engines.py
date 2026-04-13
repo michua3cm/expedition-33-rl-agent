@@ -54,8 +54,6 @@ class TestSIFTEngineLoad:
         )
         assert len(engine._templates) == 0
 
-
-class TestSIFTEngineLoad:
     def test_loads_multiple_files_for_single_label(self):
         # SIFT load does not gate on des being None, so a blank image is enough
         # to trigger variant creation without needing to mock detectAndCompute.
@@ -138,8 +136,6 @@ class TestORBEngineLoad:
         )
         assert len(engine._templates) == 0
 
-
-class TestORBEngineLoad:
     def test_loads_multiple_files_for_single_label(self):
         # ORB skips variants with des=None, so we must mock ORB_create before
         # instantiation to inject a detectAndCompute that returns real des.
