@@ -26,8 +26,8 @@ The agent interacts with the game purely through visual inputs (screen capture) 
 | 1 | Vision System & Calibration | Complete |
 | 2 | YOLO Training Pipeline | In Progress |
 | 3 | Environment Wrapper (Gym) | In Progress |
-| 4 | Imitation Learning (IL) | Planned |
-| 5 | Reinforcement Learning (RL) | Planned |
+| 4 | Imitation Learning (IL) — Phase 1: GAIL (defense + normal attack) | In Progress |
+| 5 | Reinforcement Learning (RL) — Phase 1: PPO fine-tune on live game | In Progress |
 
 ---
 
@@ -52,10 +52,12 @@ expedition-33-rl-agent/
 ├── vision/          # Swappable vision engines (PIXEL, SIFT, ORB, YOLO)
 ├── environment/     # Gymnasium RL environment, action space, async capture
 ├── calibration/     # Data collection, CSV logging, config
+├── il/              # GAIL imitation learning pipeline (dataset loader, trainer)
+├── rl/              # PPO fine-tuning (GAIL checkpoint warm-start, training loop)
 ├── tools/           # Offline pipeline tools (YOLO training, demo recorder, benchmark)
 ├── tests/           # Unit tests (pytest)
 ├── assets/          # Template images for PIXEL/SIFT/ORB engines
-└── data/            # Runtime outputs (logs, screenshots, demos, YOLO dataset)
+└── data/            # Runtime outputs (logs, screenshots, demos, YOLO dataset, models)
 ```
 
 See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for the full annotated file tree.
@@ -105,6 +107,9 @@ uv sync --group dev      # also installs pytest + pytest-mock
 | `uv run main.py autolabel` | Auto-label screenshots with PIXEL engine |
 | `uv run main.py train` | Train YOLOv8 on the labeled dataset |
 | `uv run python -m tools.demo_recorder` | Record human gameplay demonstrations |
+| `uv run main.py gail-train` | Train a GAIL imitation learning agent from recorded demos |
+| `uv run main.py rl-train` | PPO fine-tune on live game (Phase 1 RL) |
+| `uv run main.py rl-train --gail-checkpoint data/models/gail_<ts>.zip` | PPO fine-tune warm-started from GAIL |
 | `uv run python -m tools.vision_benchmark` | Benchmark vision engines on saved screenshots |
 | `uv run python -m tools.vision_benchmark --live` | Live capture stress test with Hz recommendation |
 | `uv run pytest tests/` | Run the full unit test suite |

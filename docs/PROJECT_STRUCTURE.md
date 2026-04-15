@@ -36,6 +36,14 @@ expedition-33-rl-agent/
 │   ├── instance.py              # GameInstance: vision + controller bridge
 │   └── controls.py              # GameController: DirectInput keyboard/mouse
 │
+├── il/                          # GAIL Imitation Learning (IL Phase 1)
+│   ├── dataset.py               # load_transitions(): .npz demos → imitation Transitions
+│   └── gail.py                  # train_gail(): GAIL trainer (imitation + SB3 PPO)
+│
+├── rl/                          # Reinforcement Learning (RL Phase 1) — PPO fine-tuning
+│   ├── policy.py                # load_gail_weights(): GAIL checkpoint → PPO warm-start
+│   └── train.py                 # PPO training loop: SB3 PPO, optional GAIL warm-start, checkpoint save
+│
 ├── tools/                       # Offline pipeline tools (no game required to run)
 │   ├── auto_label.py            # PIXEL → YOLO label generator + dataset.yaml writer
 │   ├── train.py                 # YOLOv8 training wrapper
@@ -57,7 +65,9 @@ expedition-33-rl-agent/
 │   ├── test_gym_env.py          # environment/gym_env.py
 │   ├── test_state_buffer.py     # environment/state_buffer.py
 │   ├── test_demo_recorder.py    # tools/demo_recorder.py
-│   └── test_vision_benchmark.py # tools/vision_benchmark.py
+│   ├── test_vision_benchmark.py # tools/vision_benchmark.py
+│   ├── test_gail.py             # il/dataset.py, il/gail.py, Expedition33Env truncation
+│   └── test_rl.py               # rl/policy.py (GAIL warm-start) + rl/train.py (PPO loop)
 │
 ├── docs/                        # Extended documentation
 │   ├── PROJECT_STRUCTURE.md     # This file
@@ -67,7 +77,8 @@ expedition-33-rl-agent/
 └── data/                        # Runtime outputs — gitignored
     ├── logs/                    # CSV calibration logs (from record command)
     ├── screenshots/             # Debug snapshots + YOLO raw input
-    ├── demos/                   # Human demonstration .npz files
+    ├── demos/                   # Human demonstration .npz files (from demo command)
+    ├── models/                  # Trained checkpoints (gail_<timestamp>.zip, ppo_<timestamp>.zip)
     └── yolo_dataset/            # YOLO training dataset (auto-generated)
         ├── dataset.yaml         # Class names and split paths
         ├── images/
@@ -88,6 +99,8 @@ expedition-33-rl-agent/
 | `vision/` | Pure detection — takes a frame, returns detections | numpy, cv2, ultralytics |
 | `calibration/` | Data collection, logging, config | vision/, mss |
 | `environment/` | RL interface — wraps game as gym.Env | vision/, calibration/config |
+| `il/` | GAIL imitation learning — demo dataset loader, GAIL trainer | environment/, imitation, stable-baselines3 |
+| `rl/` | PPO fine-tuning — GAIL checkpoint warm-start, training loop, checkpoint saving | il/, environment/, stable-baselines3 |
 | `tools/` | Offline utilities — YOLO pipeline, demo recording, benchmarking | vision/, environment/, calibration/ |
 | `tests/` | Unit tests — all external deps mocked | pytest, pytest-mock |
 

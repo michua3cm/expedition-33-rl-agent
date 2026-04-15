@@ -18,6 +18,8 @@ Full reference for all commands in the Expedition 33 RL Agent project.
   - [Step 2 — Auto-label with PIXEL](#step-2--auto-label-with-pixel)
   - [Step 3 — Train](#step-3--train)
 - [Human Demo Recorder](#human-demo-recorder)
+- [GAIL Training Pipeline](#gail-training-pipeline)
+- [RL Fine-Tuning Pipeline](#rl-fine-tuning-pipeline)
 - [Vision Benchmark](#vision-benchmark)
 - [Running Tests](#running-tests)
 
@@ -178,6 +180,83 @@ Press **Ctrl+C** to stop. The trajectory is saved automatically as a compressed 
 - `timestamps` — `float64 (N,)`: Unix timestamp of each capture
 
 > **Choosing `--hz`:** Run the live stress test first (`--live` flag below) to find the max sustainable FPS for your engine and hardware, then set `--hz` to 60–70% of that value for safe headroom.
+
+---
+
+## GAIL Training Pipeline
+
+Phase 1 IL trains a GAIL agent from human demos using the `imitation` library. Requires recorded `.npz` demo files and the `il` + `cuda` dependency groups.
+
+```bash
+uv sync --group cuda --group il   # install torch, SB3, imitation (first time only)
+```
+
+```bash
+uv run main.py gail-train                                      # defaults
+uv run main.py gail-train --timesteps 500000 --engine pixel   # more steps
+uv run main.py gail-train --no-cuda                           # CPU-only
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--timesteps` | `200 000` | Total environment steps to train for |
+| `--engine` | `pixel` | Vision engine for live observation capture |
+| `--max-steps` | `1000` | Episode truncation limit (enables finite episodes for PPO) |
+| `--demos-dir` | `data/demos` | Directory containing `.npz` demo files |
+| `--checkpoint` | `data/models` | Output directory for saved checkpoint |
+| `--no-cuda` | — | Disable GPU even if available |
+
+The trained checkpoint is saved to `data/models/gail_<YYYYMMDD_HHMMSS>.zip` — a standard SB3 PPO `.zip` that can be loaded directly for RL fine-tuning.
+
+---
+
+## RL Fine-Tuning Pipeline
+
+Phase 1 RL fine-tunes a PPO policy on the live game using Stable-Baselines3. Requires the game to be running and the `il` + `cuda` dependency groups.
+
+### From scratch
+
+```bash
+uv run main.py rl-train
+```
+
+### With GAIL warm-start (recommended)
+
+Pass a GAIL checkpoint to `rl-train` so training begins from the imitation-learned policy rather than random noise:
+
+```bash
+uv run main.py rl-train --gail-checkpoint data/models/gail_20260423_120000.zip
+```
+
+### All options
+
+```bash
+uv run main.py rl-train --gail-checkpoint data/models/gail_<ts>.zip \
+    --timesteps 200000 \
+    --engine PIXEL \
+    --n-steps 2048 \
+    --batch-size 64 \
+    --n-epochs 10 \
+    --lr 3e-4 \
+    --ent-coef 0.01 \
+    --no-cuda
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--gail-checkpoint` | — | Path to `gail_*.zip` for PPO warm-start (optional) |
+| `--timesteps` | `100 000` | Total environment steps to collect |
+| `--engine` | `PIXEL` | Vision engine for live observation capture |
+| `--n-steps` | `2048` | Steps per PPO rollout buffer fill |
+| `--batch-size` | `64` | PPO mini-batch size |
+| `--n-epochs` | `10` | Gradient epochs per rollout update |
+| `--lr` | `3e-4` | Adam learning rate |
+| `--ent-coef` | `0.01` | Entropy regularisation — prevents early action collapse |
+| `--no-cuda` | — | Disable GPU even if available |
+
+The trained checkpoint is saved to `data/models/ppo_<YYYYMMDD_HHMMSS>.zip`.
+
+> **Why warm-start from GAIL?** A GAIL checkpoint is already a PPO policy trained to mimic the expert — RL fine-tuning only needs to correct the residual mistakes GAIL makes in out-of-distribution states, rather than learning everything from scratch.
 
 ---
 

@@ -51,6 +51,10 @@ uv run pytest tests/ -x
 | `test_state_buffer.py` | `environment/state_buffer.py` | Lifecycle, state access, timeout, error resilience |
 | `test_demo_recorder.py` | `tools/demo_recorder.py` | Key/mouse mapping, capture loop, observation builder, save |
 | `test_vision_benchmark.py` | `tools/vision_benchmark.py` | EngineResult, LiveStressResult, image loading, benchmark runner, live stress test, CSV export, print output |
+| `test_gail.py` | `il/dataset.py`, `il/gail.py` | Demo loading, obs shapes, next_obs shift, Transitions construction, GAIL orchestration, DummyVecEnv wrapping, checkpoint save |
+| `test_rl.py` | `rl/policy.py`, `rl/train.py` | GAIL checkpoint warm-start, train() orchestration, warm-start flag, env.close(), checkpoint path |
+
+> **Note:** `test_gail.py` and `test_rl.py` mock all heavy deps via `sys.modules` injection — they run in CI with only the `dev` group installed.
 
 ---
 
@@ -266,6 +270,20 @@ All image loading, screen capture (`mss`), vision engine calls, and `time.perf_c
 | `TestPrintReport` / `TestPrintLiveReport` | Output contains engine name, section headers, recommendation text, below-threshold message |
 
 ---
+
+## test_rl.py
+
+**Modules:** `rl/policy.py`, `rl/train.py`
+
+All heavy deps (SB3, torch) mocked via `sys.modules` injection — runs in CI with `dev` group only.
+
+| Test class | What is verified |
+|---|---|
+| `TestLoadGailWeights` | `PPO.load()` called with correct checkpoint path and env; returned model used for training |
+| `TestRlTrain` | Returns path ending with `.zip`; `model.save()` called once with `ppo_` in path; `model.learn()` called with the correct `total_timesteps`; `load_gail_weights()` called when `gail_checkpoint` provided; skipped when `gail_checkpoint=None`; `env.close()` called on completion; output directory created when it doesn't exist |
+
+---
+
 
 ## Mocking Conventions
 
