@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from .engine import VisionEngine
 
 _REGISTRY: dict[str, type[VisionEngine]] = {}
