@@ -101,13 +101,15 @@ def run(target: int = DEFAULT_TARGET) -> None:
     """
     print("=== Dataset Status ===")
 
-    has_labeled = os.path.isdir(YOLO_LABELED_LABELS_DIR) and any(
-        f.endswith(".txt") for f in os.listdir(YOLO_LABELED_LABELS_DIR)
-    ) if os.path.isdir(YOLO_LABELED_LABELS_DIR) else False
+    has_labeled = (
+        os.path.isdir(YOLO_LABELED_LABELS_DIR)
+        and any(f.endswith(".txt") for f in os.listdir(YOLO_LABELED_LABELS_DIR))
+    )
 
-    has_split = os.path.isdir(TRAIN_LABELS) and any(
-        f.endswith(".txt") for f in os.listdir(TRAIN_LABELS)
-    ) if os.path.isdir(TRAIN_LABELS) else False
+    has_split = (
+        os.path.isdir(TRAIN_LABELS)
+        and any(f.endswith(".txt") for f in os.listdir(TRAIN_LABELS))
+    )
 
     if not has_labeled and not has_split:
         print("\n  No label files found. Run 'uv run main.py collect' first.")
