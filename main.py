@@ -106,6 +106,46 @@ def main():
         help="Disable GPU and force CPU training",
     )
 
+    # ── rl-train ──────────────────────────────────────────────────────────────
+    parser_rl = subparsers.add_parser(
+        "rl-train", help="Fine-tune a PPO policy on the live game (Phase 1 RL)"
+    )
+    parser_rl.add_argument(
+        "--bc-checkpoint", type=str, default=None,
+        help="BC actor warm-start checkpoint path (optional)",
+    )
+    parser_rl.add_argument(
+        "--timesteps", type=int, default=100_000,
+        help="Total environment steps (default: 100 000)",
+    )
+    parser_rl.add_argument(
+        "--engine", default="PIXEL",
+        help="Vision engine for observation capture (default: PIXEL)",
+    )
+    parser_rl.add_argument(
+        "--n-steps", type=int, default=2048,
+        help="PPO rollout steps per update (default: 2048)",
+    )
+    parser_rl.add_argument(
+        "--batch-size", type=int, default=64,
+        help="PPO mini-batch size (default: 64)",
+    )
+    parser_rl.add_argument(
+        "--n-epochs", type=int, default=10,
+        help="PPO gradient epochs per rollout (default: 10)",
+    )
+    parser_rl.add_argument(
+        "--lr", type=float, default=3e-4,
+        help="Learning rate (default: 3e-4)",
+    )
+    parser_rl.add_argument(
+        "--ent-coef", type=float, default=0.01,
+        help="Entropy coefficient (default: 0.01)",
+    )
+    parser_rl.add_argument(
+        "--no-cuda", action="store_true", help="Disable GPU even if available"
+    )
+
     # ── routing ───────────────────────────────────────────────────────────────
     args = parser.parse_args()
 
@@ -156,6 +196,21 @@ def main():
             device=device,
         )
         print(f">> Checkpoint saved to: {checkpoint}")
+
+    elif args.mode == "rl-train":
+        from rl.train import train as rl_train
+        print(">> Launching PPO RL training (Phase 1)...")
+        rl_train(
+            bc_checkpoint=args.bc_checkpoint,
+            engine=args.engine,
+            total_timesteps=args.timesteps,
+            n_steps=args.n_steps,
+            batch_size=args.batch_size,
+            n_epochs=args.n_epochs,
+            lr=args.lr,
+            ent_coef=args.ent_coef,
+            use_cuda=not args.no_cuda,
+        )
 
     else:
         parser.print_help()
