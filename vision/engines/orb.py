@@ -102,10 +102,8 @@ class ORBEngine(VisionEngine):
 
                 # Lowe's ratio test — guard against pairs with fewer than 2 neighbours
                 good = [
-                    m for pair in matches
-                    if len(pair) == 2
-                    for m, n in [pair]
-                    if m.distance < 0.75 * n.distance
+                    pair[0] for pair in matches
+                    if len(pair) == 2 and pair[0].distance < 0.75 * pair[1].distance
                 ]
 
                 if len(good) < data["min_matches"]:
