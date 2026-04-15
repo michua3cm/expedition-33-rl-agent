@@ -12,8 +12,6 @@ Usage::
         draw_roi_overlays(overlay, TARGETS, frame_w, frame_h, off_x, off_y)
 """
 
-from __future__ import annotations
-
 from overlay_ui import OverlayWindow
 
 
