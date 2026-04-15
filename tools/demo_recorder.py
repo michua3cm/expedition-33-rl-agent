@@ -47,8 +47,6 @@ CLI
     python -m tools.demo_recorder --session demo_01 --engine PIXEL --hz 20
 """
 
-from __future__ import annotations
-
 import argparse
 import os
 import threading

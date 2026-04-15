@@ -60,8 +60,6 @@ Options
     --live-duration   Duration of the live stress test in seconds (default: 10)
 """
 
-from __future__ import annotations
-
 import argparse
 import csv
 import os

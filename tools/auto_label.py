@@ -24,8 +24,6 @@ YOLO label format (one line per detection):
   <class_id> <x_center_norm> <y_center_norm> <width_norm> <height_norm>
 """
 
-from __future__ import annotations
-
 import os
 import random
 import shutil
