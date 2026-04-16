@@ -12,8 +12,6 @@ Usage::
         draw_roi_overlays(overlay, TARGETS, frame_w, frame_h, off_x, off_y)
 """
 
-from __future__ import annotations
-
 from overlay_ui import OverlayWindow
 
 
@@ -41,10 +39,7 @@ def draw_roi_overlays(
         roi = cfg.get("roi")
         if roi is None:
             continue
-        x = int(roi[0] * frame_w) + off_x
-        y = int(roi[1] * frame_h) + off_y
-        w = max(1, int(roi[2] * frame_w))
-        h = max(1, int(roi[3] * frame_h))
+        x, y, w, h = roi_to_pixels(roi, frame_w, frame_h, off_x, off_y)
         color: str = cfg.get("color", "white")
         overlay.draw_roi_rect(x, y, w, h, color, label)
 

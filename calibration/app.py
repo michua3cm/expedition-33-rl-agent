@@ -41,14 +41,11 @@ class CalibrationApp:
     def _setup_monitor(self):
         """Configure monitor cropping region."""
         raw = self.sct.monitors[MONITOR_INDEX]
-        w, h = raw["width"], raw["height"]
-        margin_w = int(w * 0.0)
-        margin_h = int(h * 0.0)
         return {
-            "top": raw["top"] + margin_h,
-            "left": raw["left"] + margin_w,
-            "width": w - (margin_w * 2),
-            "height": h - (margin_h * 2),
+            "top": raw["top"],
+            "left": raw["left"],
+            "width": raw["width"],
+            "height": raw["height"],
             "mon": MONITOR_INDEX,
         }
 

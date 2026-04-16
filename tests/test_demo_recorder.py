@@ -6,8 +6,6 @@ mocked. No screen capture, no keyboard listener, and no real files are
 used in any test.
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock, patch
 
 import numpy as np

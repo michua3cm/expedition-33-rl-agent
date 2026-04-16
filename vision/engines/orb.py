@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 
 import cv2
@@ -7,6 +5,7 @@ import numpy as np
 
 from ..engine import HUE_RANGES, Detection, VisionEngine, apply_roi
 from ..registry import register
+from ._utils import _load_template_grey
 
 _DEFAULT_MIN_MATCHES = 12
 
@@ -59,23 +58,11 @@ class ORBEngine(VisionEngine):
                 if not os.path.exists(path):
                     print(f"[ORBEngine] Warning: '{fname}' not found, skipping for '{label}'.")
                     continue
-                if hue_ranges is not None:
-                    img_bgr = cv2.imread(path, cv2.IMREAD_COLOR)
-                    if img_bgr is None:
-                        print(f"[ORBEngine] Error: failed to load '{fname}'.")
-                        continue
-                    img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-                    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-                    mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
-                    for lo, hi in hue_ranges:
-                        mask |= cv2.inRange(hsv, (lo, 100, 200), (hi, 255, 255))
-                    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=1)
-                else:
-                    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-                    if img is None:
-                        print(f"[ORBEngine] Error: failed to load '{fname}'.")
-                        continue
-                    mask = None
+                result = _load_template_grey(path, hue_ranges)
+                if result is None:
+                    print(f"[ORBEngine] Error: failed to load '{fname}'.")
+                    continue
+                img, mask = result
 
                 kp, des = self._orb.detectAndCompute(img, mask)
                 if des is None:
@@ -113,10 +100,8 @@ class ORBEngine(VisionEngine):
 
                 # Lowe's ratio test — guard against pairs with fewer than 2 neighbours
                 good = [
-                    m for pair in matches
-                    if len(pair) == 2
-                    for m, n in [pair]
-                    if m.distance < 0.75 * n.distance
+                    pair[0] for pair in matches
+                    if len(pair) == 2 and pair[0].distance < 0.75 * pair[1].distance
                 ]
 
                 if len(good) < data["min_matches"]:

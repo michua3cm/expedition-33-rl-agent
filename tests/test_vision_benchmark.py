@@ -6,8 +6,6 @@ No live monitor access, no real image files, and no real engine
 inference is performed in any test.
 """
 
-from __future__ import annotations
-
 import csv
 from unittest.mock import MagicMock, patch
 

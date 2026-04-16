@@ -24,8 +24,6 @@ YOLO label format (one line per detection):
   <class_id> <x_center_norm> <y_center_norm> <width_norm> <height_norm>
 """
 
-from __future__ import annotations
-
 import os
 import random
 import shutil
@@ -177,6 +175,8 @@ def run(val_split: float = 0.2, include_negatives: bool = True) -> None:
                 with open(dst_label, "w") as f:
                     f.write("\n".join(label_lines) + ("\n" if label_lines else ""))
 
+                had_detections = bool(label_lines)
+
             else:
                 # Raw image: run detection to generate labels.
                 img_path = os.path.join(RAW_DIR, filename)
@@ -208,9 +208,9 @@ def run(val_split: float = 0.2, include_negatives: bool = True) -> None:
                     for det in detections:
                         f.write(_detection_to_yolo(det, img_w, img_h) + "\n")
 
-                label_lines = detections  # type: ignore[assignment]  # truthy check only
+                had_detections = bool(detections)
 
-            if label_lines:
+            if had_detections:
                 total_labeled += 1
             else:
                 total_negative += 1

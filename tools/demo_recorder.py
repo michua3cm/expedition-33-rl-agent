@@ -47,8 +47,6 @@ CLI
     python -m tools.demo_recorder --session demo_01 --engine PIXEL --hz 20
 """
 
-from __future__ import annotations
-
 import argparse
 import os
 import threading
@@ -83,9 +81,7 @@ OBSERVATION_TARGETS = [
     "GRADIENT_INCOMING",
 ]
 
-# Number of targets — used to compute obs vector length
-_N = len(OBSERVATION_TARGETS)
-OBS_DIM = _N * 3  # confidence + x_centre + y_centre
+_N = len(OBSERVATION_TARGETS)  # obs vector length per slot (conf + x + y)
 
 # Keyboard character → action index
 _KEY_MAP: dict[str, int] = {

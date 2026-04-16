@@ -20,8 +20,6 @@ Reward function (Phase 1):
   All reward signals are consumed once detected (cleared after one step).
 """
 
-from __future__ import annotations
-
 import time
 from typing import Any
 

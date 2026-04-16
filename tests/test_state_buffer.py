@@ -6,8 +6,6 @@ concurrency behaviour; timeouts are kept short (<1 s) so the suite
 runs fast.
 """
 
-from __future__ import annotations
-
 import time
 from unittest.mock import MagicMock
 

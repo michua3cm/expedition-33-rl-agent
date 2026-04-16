@@ -4,8 +4,6 @@ Unit tests for tools/dataset_status.py.
 All filesystem access is mocked — no real label files are read or written.
 """
 
-from __future__ import annotations
-
 from unittest.mock import mock_open, patch
 
 from tools.dataset_status import _count_labels, _print_table, run

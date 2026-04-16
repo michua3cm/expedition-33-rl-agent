@@ -5,8 +5,6 @@ Trains a YOLOv8 model on the auto-labeled dataset.
 Output model is saved to: data/yolo_dataset/train/weights/best.pt
 """
 
-from __future__ import annotations
-
 import os
 
 DATASET_YAML = os.path.abspath(os.path.join("data", "yolo_dataset", "dataset.yaml"))
