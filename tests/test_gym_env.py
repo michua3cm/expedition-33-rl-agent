@@ -5,8 +5,6 @@ GameInstance is fully mocked — no screen capture, no controller, no
 real vision engine is involved in any test.
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock, patch
 
 import numpy as np

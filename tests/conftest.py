@@ -13,8 +13,6 @@ exercise these modules directly use unittest.mock to replace them with
 more specific fakes.
 """
 
-from __future__ import annotations
-
 import sys
 import types
 
@@ -69,7 +67,7 @@ if "pynput" not in sys.modules:
         def __init__(self, char: str = "") -> None:
             self.char = char
         @classmethod
-        def from_char(cls, char: str) -> _KeyCode:
+        def from_char(cls, char: str) -> "_KeyCode":
             return cls(char)
     _keyboard.KeyCode = _KeyCode
 
