@@ -81,12 +81,14 @@ class Expedition33Env(gym.Env):
         roi: dict | None = None,
         step_delay: float = 0.15,
         include_frame: bool = False,
+        max_steps: int = 0,
     ):
         super().__init__()
 
         self.game = GameInstance(engine=engine, roi=roi)
         self.step_delay = step_delay
         self.include_frame = include_frame
+        self.max_steps = max_steps  # 0 = unlimited (live play mode)
 
         # --- Spaces ---
         # OBS_DIM = 30: [conf×10, x_centre×10, y_centre×10], all in [0, 1]
@@ -98,6 +100,7 @@ class Expedition33Env(gym.Env):
         # Track which reward signals have already been collected this episode
         # so that lingering on-screen text does not grant repeated rewards.
         self._seen_signals: set[str] = set()
+        self._step_count: int = 0
 
     # ------------------------------------------------------------------
     # Gymnasium interface
@@ -111,6 +114,7 @@ class Expedition33Env(gym.Env):
     ) -> tuple[np.ndarray, dict]:
         super().reset(seed=seed)
         self._seen_signals.clear()
+        self._step_count = 0
         state = self.game.get_current_state(include_frame=self.include_frame)
         obs = self._build_obs(state)
         info = self._build_info(state)
@@ -127,9 +131,9 @@ class Expedition33Env(gym.Env):
         reward = self._compute_reward(state)
         info = self._build_info(state)
 
-        # Phase 1: no terminal condition — episode runs until manually stopped.
+        self._step_count += 1
         terminated = False
-        truncated = False
+        truncated = self.max_steps > 0 and self._step_count >= self.max_steps
 
         return obs, reward, terminated, truncated, info
 
