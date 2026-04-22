@@ -1,7 +1,5 @@
 """GAIL trainer for Expedition 33."""
 
-from __future__ import annotations
-
 import os
 from datetime import datetime
 

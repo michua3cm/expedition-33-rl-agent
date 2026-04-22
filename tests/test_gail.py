@@ -80,7 +80,7 @@ def _write_npz(path: Path, T: int = 50) -> None:
     """Write a minimal valid .npz demo file with T timesteps."""
     np.savez(
         path,
-        obs=np.random.rand(T, OBS_DIM).astype(np.float32),
+        observations=np.random.rand(T, OBS_DIM).astype(np.float32),
         actions=np.random.randint(0, 7, size=(T,)).astype(np.int64),
         timestamps=np.arange(T, dtype=np.float64),
     )
@@ -137,7 +137,7 @@ class TestLoadTransitions:
         # Arrange — deterministic obs to verify the shift
         demo_path = tmp_path / "demo_01.npz"
         obs = np.arange(5 * OBS_DIM, dtype=np.float32).reshape(5, OBS_DIM)
-        np.savez(demo_path, obs=obs, actions=np.zeros(5, dtype=np.int64))
+        np.savez(demo_path, observations=obs, actions=np.zeros(5, dtype=np.int64))
 
         if "il.dataset" in sys.modules:
             del sys.modules["il.dataset"]
@@ -169,7 +169,7 @@ class TestLoadTransitions:
         demo_path = tmp_path / "demo_01.npz"
         np.savez(
             demo_path,
-            obs=np.ones((5, OBS_DIM), dtype=np.float64),
+            observations=np.ones((5, OBS_DIM), dtype=np.float64),
             actions=np.zeros(5, dtype=np.int64),
         )
 

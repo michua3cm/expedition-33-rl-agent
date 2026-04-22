@@ -1,7 +1,5 @@
 """Load human-recorded .npz demo files into imitation.data.types.Transitions."""
 
-from __future__ import annotations
-
 import glob
 import os
 
@@ -14,8 +12,8 @@ def load_transitions(demos_dir: str):
     ``imitation.data.types.Transitions`` object suitable for GAIL training.
 
     Each .npz is expected to contain:
-      - ``obs``     : float32 array of shape (T, OBS_DIM)
-      - ``actions`` : int32/int64 array of shape (T,)
+      - ``observations`` : float32 array of shape (T, OBS_DIM)
+      - ``actions``      : int32/int64 array of shape (T,)
 
     Returns a Transitions object with N = sum of all timesteps across files.
     Raises FileNotFoundError if no .npz files are found.
@@ -31,7 +29,7 @@ def load_transitions(demos_dir: str):
 
     for path in paths:
         data = np.load(path)
-        all_obs.append(data["obs"].astype(np.float32))
+        all_obs.append(data["observations"].astype(np.float32))
         all_acts.append(data["actions"].astype(np.int64))
 
     obs = np.concatenate(all_obs, axis=0)    # (N, OBS_DIM)
