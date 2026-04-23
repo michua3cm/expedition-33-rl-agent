@@ -1,8 +1,8 @@
 """
-Reinforcement Learning (Phase 1) — PPO with optional BC warm-start.
+Reinforcement Learning (Phase 1) — PPO with optional GAIL warm-start.
 
 Modules
 -------
-policy  — BC → PPO actor weight transfer utility.
+policy  — load_gail_weights(): GAIL .zip checkpoint → PPO warm-start.
 train   — PPO training loop wrapping Expedition33Env via Stable-Baselines3.
 """
