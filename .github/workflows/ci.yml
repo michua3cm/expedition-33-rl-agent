@@ -15,9 +15,9 @@ name: CI
 
 on:
   push:
-    branches: [dev, main, imitation-learning]
+    branches: [dev, main, imitation-learning, reinforcement-learning]
   pull_request:
-    branches: [dev, main, imitation-learning]
+    branches: [dev, main, imitation-learning, reinforcement-learning]
 
 jobs:
   lint:
