@@ -111,8 +111,8 @@ def main():
         "rl-train", help="Fine-tune a PPO policy on the live game (Phase 1 RL)"
     )
     parser_rl.add_argument(
-        "--bc-checkpoint", type=str, default=None,
-        help="BC actor warm-start checkpoint path (optional)",
+        "--gail-checkpoint", type=str, default=None,
+        help="GAIL checkpoint (.zip) for PPO warm-start (optional)",
     )
     parser_rl.add_argument(
         "--timesteps", type=int, default=100_000,
@@ -201,7 +201,7 @@ def main():
         from rl.train import train as rl_train
         print(">> Launching PPO RL training (Phase 1)...")
         rl_train(
-            bc_checkpoint=args.bc_checkpoint,
+            gail_checkpoint=args.gail_checkpoint,
             engine=args.engine,
             total_timesteps=args.timesteps,
             n_steps=args.n_steps,
