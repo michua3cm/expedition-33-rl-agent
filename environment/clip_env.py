@@ -28,7 +28,6 @@ class CLIPExpedition33Env(Expedition33Env):
         engine: str = "PIXEL",
         roi=None,
         step_delay: float = 0.15,
-        max_steps: int = 0,
     ) -> None:
         # include_frame=True so GameState carries the raw BGR frame for CLIP.
         super().__init__(
@@ -36,7 +35,6 @@ class CLIPExpedition33Env(Expedition33Env):
             roi=roi,
             step_delay=step_delay,
             include_frame=True,
-            max_steps=max_steps,
         )
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(OBS_DIM,), dtype=np.float32
