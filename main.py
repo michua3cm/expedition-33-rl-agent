@@ -146,6 +146,32 @@ def main():
         "--no-cuda", action="store_true", help="Disable GPU even if available"
     )
 
+    # ── sac-train ─────────────────────────────────────────────────────────────
+    parser_sac = subparsers.add_parser(
+        "sac-train",
+        help="Train a SAC policy on a continuous-action env (robotics-ready)",
+    )
+    parser_sac.add_argument(
+        "--env", default="ue4ss",
+        choices=["ue4ss"],
+        help="Environment to train on (default: ue4ss)",
+    )
+    parser_sac.add_argument(
+        "--timesteps", type=int, default=500_000,
+        help="Total environment steps (default: 500 000)",
+    )
+    parser_sac.add_argument(
+        "--dp-checkpoint", type=str, default=None,
+        help="Diffusion Policy .pt checkpoint for replay-buffer warm-start (optional)",
+    )
+    parser_sac.add_argument(
+        "--checkpoint", default="data/models",
+        help="Output directory for the saved checkpoint (default: data/models)",
+    )
+    parser_sac.add_argument(
+        "--no-cuda", action="store_true", help="Disable GPU even if available"
+    )
+
     # ── routing ───────────────────────────────────────────────────────────────
     args = parser.parse_args()
 
@@ -211,6 +237,22 @@ def main():
             ent_coef=args.ent_coef,
             use_cuda=not args.no_cuda,
         )
+
+    elif args.mode == "sac-train":
+        from environment.ue4ss_env import UE4SSExpedition33Env
+
+        from rl.train_sac import train_sac
+
+        print(f">> Launching SAC training — env=ue4ss, timesteps={args.timesteps:,}")
+        env = UE4SSExpedition33Env()
+        checkpoint = train_sac(
+            env=env,
+            total_timesteps=args.timesteps,
+            dp_checkpoint=args.dp_checkpoint,
+            out_dir=args.checkpoint,
+            use_cuda=not args.no_cuda,
+        )
+        print(f">> Checkpoint saved to: {checkpoint}")
 
     else:
         parser.print_help()
