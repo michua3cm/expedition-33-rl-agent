@@ -106,6 +106,35 @@ def main():
         help="Disable GPU and force CPU training",
     )
 
+    # ── dp-train ──────────────────────────────────────────────────────────────
+    parser_dp = subparsers.add_parser(
+        "dp-train", help="Train a Diffusion Policy agent from human demonstrations"
+    )
+    parser_dp.add_argument(
+        "--demos-dir", default="data/demos",
+        help="Directory containing .npz demo files (default: data/demos)",
+    )
+    parser_dp.add_argument(
+        "--obs-dim", type=int, required=True,
+        help="Observation vector dimensionality (9 for UE4SS, 30 for vision)",
+    )
+    parser_dp.add_argument(
+        "--epochs", type=int, default=200,
+        help="Training epochs (default: 200)",
+    )
+    parser_dp.add_argument(
+        "--batch-size", type=int, default=64,
+        help="Training batch size (default: 64)",
+    )
+    parser_dp.add_argument(
+        "--checkpoint", default="data/models",
+        help="Output directory for the saved checkpoint (default: data/models)",
+    )
+    parser_dp.add_argument(
+        "--no-cuda", action="store_true",
+        help="Disable GPU and force CPU training",
+    )
+
     # ── routing ───────────────────────────────────────────────────────────────
     args = parser.parse_args()
 
@@ -154,6 +183,23 @@ def main():
             total_timesteps=args.timesteps,
             checkpoint_dir=args.checkpoint,
             device=device,
+        )
+        print(f">> Checkpoint saved to: {checkpoint}")
+
+    elif args.mode == "dp-train":
+        from il.diffusion_policy import DiffusionPolicy
+
+        device = "cpu" if args.no_cuda else "auto"
+        print(
+            f">> Starting Diffusion Policy training — obs_dim={args.obs_dim}, "
+            f"epochs={args.epochs}, batch_size={args.batch_size}, device={device}"
+        )
+        dp = DiffusionPolicy(obs_dim=args.obs_dim, device=device)
+        checkpoint = dp.train_from_demos(
+            demos_dir=args.demos_dir,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            checkpoint_dir=args.checkpoint,
         )
         print(f">> Checkpoint saved to: {checkpoint}")
 
