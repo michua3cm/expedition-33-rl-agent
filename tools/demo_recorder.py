@@ -66,6 +66,8 @@ from environment.actions import (
     PARRY,
 )
 from environment.instance import GameInstance
+from environment.ue4ss_env import _safe_ratio
+from environment.ue4ss_reader import StateReader
 
 # Vision targets — must match the gym env's OBSERVATION_TARGETS order
 OBSERVATION_TARGETS = [
@@ -276,6 +278,78 @@ class DemoRecorder:
 
 
 # ---------------------------------------------------------------------------
+# UE4SS demo recorder
+# ---------------------------------------------------------------------------
+
+
+class UE4SSDemoRecorder(DemoRecorder):
+    """
+    DemoRecorder variant that sources observations from the UE4SS Lua mod
+    instead of the vision pipeline.  Actions are still captured from keyboard
+    and mouse input using the same mapping as DemoRecorder.
+
+    Saved .npz files use obs.shape=(N, 9) (Phase 1, UE4SS only).
+    """
+
+    def __init__(
+        self,
+        reader: StateReader,
+        session_name: str = "demo",
+        poll_hz: float = 20.0,
+        save_dir: str = DEMO_DIR,
+    ):
+        self._ue4ss_reader = reader
+        # Pass game=None — we override _capture_loop so it is never accessed.
+        super().__init__(
+            game=None,  # type: ignore[arg-type]
+            session_name=session_name,
+            poll_hz=poll_hz,
+            save_dir=save_dir,
+        )
+
+    # Override the capture loop to read from UE4SS instead of the vision engine.
+    def _capture_loop(self) -> None:
+        while True:
+            tick_start = time.perf_counter()
+
+            try:
+                state = self._ue4ss_reader.read()
+
+                with self._action_lock:
+                    action = self._pending_action
+                    self._pending_action = NOOP
+
+                obs = self._build_ue4ss_obs(state)
+                self._obs_buf.append(obs)
+                self._act_buf.append(action)
+                self._ts_buf.append(time.time())
+
+            except Exception as exc:  # noqa: BLE001
+                print(f"[UE4SSDemoRecorder] Capture error: {exc}")
+
+            if self._stop_event.is_set():
+                break
+
+            elapsed = time.perf_counter() - tick_start
+            sleep_time = self._interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+    def _build_ue4ss_obs(self, state) -> np.ndarray:
+        current = np.array([
+            _safe_ratio(state["player_hp"],    state["player_hp_max"]),
+            _safe_ratio(state["enemy_hp"],     state["enemy_hp_max"]),
+            float(state["player_ap"]) / 9.0,
+            _safe_ratio(state["enemy_break"],  state["enemy_break_max"]),
+            1.0 if state["in_battle"] else 0.0,
+            1.0 if state["is_offensive_phase"] else 0.0,
+        ], dtype=np.float32)
+        # Deltas are not tracked in the recorder; filled with zeros.
+        # The training environment will compute them at load-time if needed.
+        return np.concatenate([current, np.zeros(3, dtype=np.float32)])
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
@@ -283,23 +357,43 @@ def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Record human Expedition 33 gameplay demonstrations."
     )
-    p.add_argument("--session", default="demo", help="Output filename stem")
-    p.add_argument("--engine",  default="PIXEL", help="Vision engine (PIXEL/SIFT/ORB)")
-    p.add_argument("--hz",      type=float, default=20.0, help="Capture rate in Hz")
+    p.add_argument("--session",  default="demo",   help="Output filename stem")
+    p.add_argument("--engine",   default="PIXEL",  help="Vision engine (PIXEL/SIFT/ORB)")
+    p.add_argument("--hz",       type=float, default=20.0, help="Capture rate in Hz")
     p.add_argument("--save-dir", default=DEMO_DIR, help="Directory to save .npz files")
+    p.add_argument(
+        "--env",
+        choices=["vision", "ue4ss"],
+        default="vision",
+        help="Observation source: 'vision' (default) or 'ue4ss' (UE4SS Lua mod)",
+    )
     return p.parse_args()
 
 
 if __name__ == "__main__":
     args = _parse_args()
 
-    game = GameInstance(engine=args.engine)
-    rec  = DemoRecorder(
-        game,
-        session_name=args.session,
-        poll_hz=args.hz,
-        save_dir=args.save_dir,
-    )
+    if args.env == "ue4ss":
+        reader = StateReader()
+        if not reader.is_available():
+            print(
+                "[UE4SSDemoRecorder] WARNING: UE4SS state file not found — "
+                "observations will be all-zero until the UE4SS mod writes its first tick."
+            )
+        rec: DemoRecorder = UE4SSDemoRecorder(
+            reader,
+            session_name=args.session,
+            poll_hz=args.hz,
+            save_dir=args.save_dir,
+        )
+    else:
+        game = GameInstance(engine=args.engine)
+        rec = DemoRecorder(
+            game,
+            session_name=args.session,
+            poll_hz=args.hz,
+            save_dir=args.save_dir,
+        )
 
     rec.start()
     try:

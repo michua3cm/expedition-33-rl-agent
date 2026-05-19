@@ -75,6 +75,27 @@ def main():
         help="Minimum instances per class to be considered ready (default: 50)",
     )
 
+    # ── demo ──────────────────────────────────────────────────────────────────
+    parser_demo = subparsers.add_parser(
+        "demo", help="Record human gameplay demonstrations for imitation learning"
+    )
+    parser_demo.add_argument(
+        "--session", default="demo", help="Output filename stem (default: demo)"
+    )
+    parser_demo.add_argument(
+        "--env",
+        choices=["vision", "ue4ss"],
+        default="vision",
+        help="Observation source: 'vision' (screen capture) or 'ue4ss' (UE4SS Lua mod, default: vision)",
+    )
+    parser_demo.add_argument(
+        "--engine", default="PIXEL",
+        help="Vision engine — only used when --env vision (default: PIXEL)",
+    )
+    parser_demo.add_argument(
+        "--hz", type=float, default=20.0, help="Capture rate in Hz (default: 20)"
+    )
+
     # ── routing ───────────────────────────────────────────────────────────────
     args = parser.parse_args()
 
@@ -105,6 +126,47 @@ def main():
     elif args.mode == "status":
         from tools.dataset_status import run as run_status
         run_status(target=args.target)
+
+    elif args.mode == "demo":
+        import time
+
+        from tools.demo_recorder import DemoRecorder, UE4SSDemoRecorder
+
+        if args.env == "ue4ss":
+            from environment.ue4ss_reader import StateReader
+            reader = StateReader()
+            if not reader.is_available():
+                print(
+                    ">> [demo] WARNING: UE4SS state file not found. "
+                    "Start the game with the UE4SS StateReader mod before recording."
+                )
+            rec: DemoRecorder = UE4SSDemoRecorder(
+                reader, session_name=args.session, poll_hz=args.hz
+            )
+            print(f">> [demo] UE4SS mode — obs dim=9, session='{args.session}'")
+        else:
+            from environment.instance import GameInstance
+            game = GameInstance(engine=args.engine)
+            rec = DemoRecorder(game, session_name=args.session, poll_hz=args.hz)
+            print(
+                f">> [demo] Vision mode — engine={args.engine.upper()}, "
+                f"obs dim=30, session='{args.session}'"
+            )
+
+        rec.start()
+        try:
+            while True:
+                time.sleep(0.5)
+                print(
+                    f"\r>> [demo] {rec.frame_count} frames captured... (Ctrl+C to stop)",
+                    end="",
+                    flush=True,
+                )
+        except KeyboardInterrupt:
+            print()
+            path = rec.stop()
+            if path:
+                print(f">> [demo] Saved: {path}")
 
     else:
         parser.print_help()
